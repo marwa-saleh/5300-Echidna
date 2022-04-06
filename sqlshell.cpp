@@ -1,5 +1,5 @@
 //Merryl Cruz and Darin Hui
-//CPSC 4300 
+//CPSC 4300/5300 
 //sqlshell.cpp
 
 #include <stdio.h>
