@@ -8,6 +8,7 @@
 #include <string>
 #include <iostream>
 #include "db_cxx.h"
+#include "SQLParser.h"
 
 using namespace std;
 
