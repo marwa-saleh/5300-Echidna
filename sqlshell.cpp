@@ -1,4 +1,4 @@
-//Merryl Cruz and Darin Hui
+//Meryll Cruz and Darin Hui
 //CPSC 4300/5300 
 //sqlshell.cpp
 
