@@ -8,8 +8,11 @@
 #include <string>
 #include <iostream>
 #include "db_cxx.h"
+#include "SQLParser.h"
+#include "sqlhelper.h"
 
 using namespace std;
+using namespace hsql;
 
 const char *HOME = "cpsc5300/data";
 const char *SQLSHELL = "sqlshell.db";
@@ -17,9 +20,12 @@ const unsigned int BLOCK_SZ = 4096;
 
 const char *EXIT = "quit";
 
+/**
+ * Main entry point of sqlshell program
+ **/
 
 //TO DO: add arguments in main func
-int main() {
+int main(int argc, char **argv) {
 	//TO DO: create/open Berkeley DB env (probably in different file)
 	
 	const char *home = std::getenv("HOME");
@@ -36,7 +42,8 @@ int main() {
 	db.set_re_len(BLOCK_SZ); // Set record length to 4K
 	db.open(NULL, SQLSHELL, NULL, DB_RECNO, DB_CREATE | DB_TRUNCATE, 0644); // Erases anything already there
 
-    //user-input loop for SQL
+	//TODO: Consider using while(true) and break when input is quit
+    //user-input loop for SQL 
     std::string input = "";
 	cout << "SQL> \n";
 	getline(cin, input);
