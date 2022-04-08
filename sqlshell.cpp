@@ -8,17 +8,33 @@
 #include <string>
 #include <iostream>
 #include "db_cxx.h"
-#include "SQLParser.h"
 
 using namespace std;
 
-const string EXIT = "quit";
+const char *HOME = "cpsc5300/data";
+const char *SQLSHELL = "sqlshell.db";
+const unsigned int BLOCK_SZ = 4096;
+
+const char *EXIT = "quit";
 
 
 //TO DO: add arguments in main func
 int main() {
 	//TO DO: create/open Berkeley DB env (probably in different file)
 	
+	const char *home = std::getenv("HOME");
+	string envdir = std::string(home) + "/" + HOME;
+
+	DbEnv env(0U);
+	env.set_message_stream(&cout);
+	env.set_error_stream(&cerr);
+	env.open(envdir.c_str(), DB_CREATE | DB_INIT_MPOOL, 0);
+
+	Db db(&env, 0);
+	db.set_message_stream(env.get_message_stream());
+	db.set_error_stream(env.get_error_stream());
+	db.set_re_len(BLOCK_SZ); // Set record length to 4K
+	db.open(NULL, SQLSHELL, NULL, DB_RECNO, DB_CREATE | DB_TRUNCATE, 0644); // Erases anything already there
 
     //user-input loop for SQL
     std::string input = "";
