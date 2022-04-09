@@ -44,15 +44,16 @@ int main(int argc, char **argv) {
 
 	//TODO: Consider using while(true) and break when input is quit
     //user-input loop for SQL 
-    std::string input = "";
-	cout << "SQL> \n";
-	getline(cin, input);
 
-	while (input != EXIT) {
+	while (true) {
 		//TODO: parse/execute SQL
-		
 		cout << "SQL> \n";
+		string input = "";
 		getline(cin, input);
+
+		if (input == EXIT) {
+			break;
+		}
 	}
 
 	return 0;
