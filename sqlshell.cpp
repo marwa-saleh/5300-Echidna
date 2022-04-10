@@ -15,6 +15,12 @@
 using namespace std;
 using namespace hsql;
 
+const char *HOME = "cpsc5300/data";
+const char *SQLSHELL = "sqlshell.db";
+const unsigned int BLOCK_SZ = 4096;
+const char *EXIT = "quit";
+DbEnv *_DB_ENV;
+ 
 string expressionToString(const Expr * expression);
 string operatorToString(const Expr *opExpr);
 string columnToString(const ColumnDefinition *col);
@@ -234,10 +240,6 @@ string execute(const SQLStatement *statement) {
   }
 }
 
-const char *HOME = "cpsc5300/data";
-const char *SQLSHELL = "sqlshell.db";
-const unsigned int BLOCK_SZ = 4096;
-const char *EXIT = "quit";
 
 /**
  * Main entry point of sqlshell program
@@ -246,20 +248,25 @@ const char *EXIT = "quit";
 //TO DO: add arguments in main func
 int main(int argc, char* argv[]) {
   	string input = "";
-  	SQLParserResult* parsedResult;
+	char *location;
 	//TO DO: create/open Berkeley DB env (probably in different file)
 	
 	if (argc != 2) {
     cerr << "Wrong number of arguments." << endl;
     return 1;
-  }
+  	}
+	  
+	location = argv[1];
+
 	const char *home = std::getenv("HOME");
 	string envdir = std::string(home) + "/" + HOME;
 
 	DbEnv env(0U);
 	env.set_message_stream(&cout);
 	env.set_error_stream(&cerr);
-	env.open(envdir.c_str(), DB_CREATE | DB_INIT_MPOOL, 0);
+	env.open(location, DB_CREATE | DB_INIT_MPOOL, 0);
+
+	_DB_ENV = &env;
 
 	Db db(&env, 0);
 	db.set_message_stream(env.get_message_stream());
@@ -278,7 +285,7 @@ int main(int argc, char* argv[]) {
 		if (input == EXIT) {
 			break;
 		}
-		parsedResult = SQLParser::parseSQLString(input);
+		SQLParserResult *parsedResult = SQLParser::parseSQLString(input);
     	if (parsedResult->isValid()) {
       		for (uint i = 0; i < parsedResult->size(); i++) {
       		  cout << execute(parsedResult->getStatement(i)) << endl;
