@@ -281,9 +281,7 @@ int main(int argc, char **argv) {
   		}
    		 else {
       		cout << "ERROR: Invalid SQL" << endl;
-    	}
-    	delete parsedResult; //saves memory
+		}
+		return 0;
 	}
-
-	return 0;
 }
