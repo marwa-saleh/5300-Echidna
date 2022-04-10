@@ -13,7 +13,6 @@
 #include "sqlhelper.h"
 
 using namespace std;
-using namespace hsql;
 
 const char *HOME = "cpsc5300/data";
 const char *SQLSHELL = "sqlshell.db";
