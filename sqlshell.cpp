@@ -17,6 +17,7 @@ using namespace std;
 const char *HOME = "cpsc5300/data";
 const char *SQLSHELL = "sqlshell.db";
 const unsigned int BLOCK_SZ = 4096;
+const char *EXAMPLE = "example.db";
 const char *EXIT = "quit";
 DbEnv *_DB_ENV;
  
@@ -245,14 +246,14 @@ string execute(const SQLStatement *statement) {
  **/
 
 //TO DO: add arguments in main func
-int main(int argc, char* argv[]) {
+int main(int argc, char** argv) {
   	string input = "";
 	char *location;
 	//TO DO: create/open Berkeley DB env (probably in different file)
 	
 	if (argc != 2) {
-    cerr << "Wrong number of arguments." << endl;
-    return 1;
+    	cerr << "Wrong number of arguments." << endl;
+    	return 1;
   	}
 	  
 	location = argv[1];
@@ -271,7 +272,7 @@ int main(int argc, char* argv[]) {
 	db.set_message_stream(env.get_message_stream());
 	db.set_error_stream(env.get_error_stream());
 	db.set_re_len(BLOCK_SZ); // Set record length to 4K
-	db.open(NULL, SQLSHELL, NULL, DB_RECNO, DB_CREATE | DB_TRUNCATE, 0644); // Erases anything already there
+	db.open(NULL, example, NULL, DB_RECNO, DB_CREATE | DB_TRUNCATE, 0644); // Erases anything already there
 
 	//TODO: Consider using while(true) and break when input is quit
     //user-input loop for SQL 
