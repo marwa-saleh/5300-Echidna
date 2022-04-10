@@ -244,9 +244,15 @@ const char *EXIT = "quit";
  **/
 
 //TO DO: add arguments in main func
-int main(int argc, char **argv) {
+int main(int argc, char* argv[]) {
+  	string input = "";
+  	SQLParserResult* parsedResult;
 	//TO DO: create/open Berkeley DB env (probably in different file)
 	
+	if (argc != 2) {
+    cerr << "Wrong number of arguments." << endl;
+    return 1;
+  }
 	const char *home = std::getenv("HOME");
 	string envdir = std::string(home) + "/" + HOME;
 
@@ -267,7 +273,6 @@ int main(int argc, char **argv) {
 	while (true) {
 		//TODO: parse/execute SQL
 		cout << "SQL> \n";
-		string input = "";
 		getline(cin, input);
 
 		if (input == EXIT) {
