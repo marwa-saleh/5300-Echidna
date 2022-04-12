@@ -25,7 +25,7 @@ string execute(const SQLStatement *stmt);
 string tableRefExprToString(const TableRef* table);
 string operatorExprToString(const Expr* expr);
 string printExpr(const Expr *expression);
-string columnDefiinitionToString(const ColumnDefinition* col);
+string columnDefinitionToString(const ColumnDefinition* col);
 
 /**
  * Convert the hyrise select statement into the equivalent string
@@ -62,7 +62,7 @@ string printCreateStatement(const CreateStatement* stmt){
         if(notFirst) {
             ret += ", ";
         }
-        ret += columnDefiinitionToString(column);
+        ret += columnDefinitionToString(column);
         notFirst = true;
     }
     ret += ")";
@@ -224,7 +224,7 @@ string operatorExprToString(const Expr* expr){
  * @param col  column definition to unparse
  * @return     SQL equivalent to *col
  */
-string columnDefiinitionToString(const ColumnDefinition* col) {
+string columnDefinitionToString(const ColumnDefinition* col) {
     string ret(col->name);
     switch (col->type) {
         case ColumnDefinition::DOUBLE:
