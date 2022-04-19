@@ -4,9 +4,7 @@
 //4-13-2022
 
 #include "heap_storage.h"
-#include "storage_engine.h"
 #include <cstring>
-#include <memory>
 
 using namespace std;
 
@@ -56,6 +54,7 @@ bool test_heap_storage() {
 
 typedef u_int16_t u16;
 
+//Provided constructor
 SlottedPage::SlottedPage(Dbt &block, BlockID block_id, bool is_new) : DbBlock(block, block_id, is_new) {
     if (is_new) {
         this->num_records = 0;
@@ -80,6 +79,7 @@ RecordID SlottedPage::add(const Dbt* data) {
     return id;
 }
 
+//Get given record from block, throws error if record not found
 Dbt* SlottedPage::get(RecordID record_id) {
     u16 size, loc;
     get_header(size, loc, record_id);
@@ -87,9 +87,7 @@ Dbt* SlottedPage::get(RecordID record_id) {
     if (size == 0)
         throw ("Record id is not a record: " + record_id);
 
-    char* data = new char[size];
-
-    // NEED TO FINISH
+    return new Dbt(address(loc), size);
 }
 
 // Get 2-byte integer at given offset in block.
@@ -97,9 +95,44 @@ u16 SlottedPage::get_n(u16 offset) {
     return *(u16*)this->address(offset);
 }
 
+//Put given data in record provided, throws error if no room in block
+void SlottedPage::put(RecordID record_id, const Dbt &data) {
+    u16 size, loc;
+    get_header(size, loc, record_id);
+    u16 size_new = data.get_size();
+
+    if (size_new > size) { //do we need to slide records to make space
+        if (!has_room(size_new - size)) { //is there enough room in block
+                throw DbBlockNoRoomError("not enough room for new record");
+        }
+    }
+    //NEED TO FINISH
+}
+
 // Put a 2-byte integer at given offset in block.
 void SlottedPage::put_n(u16 offset, u16 n) {
     *(u16*)this->address(offset) = n;
+}
+
+//Get the header of given record id, and change its size and loc to 0
+//Slide the rest of the data in that block
+void SlottedPage::del(RecordID record_id) {
+    u16 size, loc;
+    get_header(size, loc, record_id);
+    put_header(record_id, 0, 0);
+    u16 end = loc + size;
+    slide(loc, end);
+}
+
+//Returns all record ids
+RecordIDs* SlottedPage::ids(void) {
+    RecordIDs* all = new RecordIDs;
+    
+    for (RecordId i = 1; i < this->num_records; i++) {
+        get_header(size, loc, i);
+        if (loc != 0) all->push_back(i);
+    }
+    return all;
 }
 
 // Make a void* pointer for a given offset into the data block.
@@ -107,11 +140,13 @@ void* SlottedPage::address(u16 offset) {
     return (void*)((char*)this->block.get_data() + offset);
 }
 
+//Return size and offset (location) for a provided record id
 void SlottedPage::get_header(u16 &size, u16 &loc, RecordID id) {
     if (id > num_records)
         throw ("Record id is not a record: " + id);
 
-    //NEED TO FINISH
+    size = get_n(4 * id);
+    loc = get_n((4 * id) + 2);
 }
 
 // Store the size and offset for given id. For id of zero, store the block header.
@@ -124,7 +159,36 @@ void SlottedPage::put_header(RecordID id, u16 size, u16 loc) {
     put_n(4*id + 2, loc);
 }
 
+//Return if there is room to store a record with given size (includes 4 bytes)
+bool SlottedPage::has_room(u16 size) {
+    u16 room = end_free - (4 * num_records);
+    return (room >= size);
+}
+
+void slide(u16 start, u16 end) {
+    u16 slide = end - start;
+    if (slide == 0) return;
+
+    //slide data 
+    memcpy(address(this->end_free + slide + 1), address(this->end_free + 1), slide);
+
+    RecordIDs* curr = ids();
+    for (RecordID& id : *curr) {
+        u16 size, loc;
+        get_header(size loc, id);
+        if (loc <= start) {
+            loc += slide;
+            put_header(id, size, loc);
+        }
+    }
+    end_free += slide;
+    put_header();
+}
+
 //---------------HeapFile---------------
+HeapFile::~HeapFile() {
+
+}
 
 void HeapFile::create(void) {
     db_open(DB_CREATE | DB_EXCL);
@@ -168,17 +232,80 @@ void HeapFile::put(DbBlock *block) {
 
 }
 
+//Returns all block ids 
 BlockIDs* HeapFile::block_ids() {
     BlockIDs* all = new BlockIDs;
 
-    for (BlockID i = 1; i <= last; i++)
+    for (BlockID i = 1; i <= this->last; i++)
         all->push_back(i);
     
     return all;
 }
 
+void HeapFile::db_open(uint flags = 0) {
+
+}
 
 //---------------HeapTable---------------
+
+//Add constructor
+
+HeapTable::~HeapTable() {
+
+}
+
+void HeapTable::create() {
+
+}
+
+void HeapTable::create_if_not_exists() {
+
+}
+
+void HeapTable::drop() {
+
+}
+
+void HeapTable::open() {
+
+}
+
+void HeapTable::close() {
+
+}
+
+Handle HeapTable::insert(const ValueDict* row) {
+
+}
+
+void HeapTable::update(const Handle handle, const ValueDict* new_values) {
+
+}
+
+void HeapTable::del(const Handle handle) {
+
+}
+
+Handles* HeapTable::select() {
+
+}
+
+
+ValueDict* HeapTable::project(Handle handle) {
+
+}
+
+ValueDict* HeapTable::project(Handle handle, const ColumnNames* column_names) {
+
+}
+
+ValueDict* validate(const ValueDict* row) {
+
+}
+
+Handle HeapTable::append(const ValueDict* row) {
+
+}
 
 // return the bits to go into the file
 // caller responsible for freeing the returned Dbt and its enclosed ret->get_data().
@@ -208,6 +335,10 @@ Dbt* HeapTable::marshal(const ValueDict* row) {
     delete[] bytes;
     Dbt *data = new Dbt(right_size_bytes, offset);
     return data;
+}
+
+ValueDict* HeapTable::unmarshal(Dbt* data) {
+
 }
 
 Handles* HeapTable::select(const ValueDict* where) {
