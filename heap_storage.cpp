@@ -105,8 +105,15 @@ void SlottedPage::put(RecordID record_id, const Dbt &data) {
         if (!has_room(size_new - size)) { //is there enough room in block
                 throw DbBlockNoRoomError("not enough room for new record");
         }
+        //slide records, put record on new index
+        slide(loc, loc - size_new);
+        memcpy(this->address(loc - size_new), data.get_data(), size_new);
+    } else {
+        //put record on index of loc
+        memcpy(this->address(loc), data.get_data(), new_size);
     }
-    //NEED TO FINISH
+    put_header(); //store block header
+    put_header(record_id, new_size, loc);
 }
 
 // Put a 2-byte integer at given offset in block.
