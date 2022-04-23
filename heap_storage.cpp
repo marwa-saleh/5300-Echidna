@@ -110,10 +110,10 @@ void SlottedPage::put(RecordID record_id, const Dbt &data) {
         memcpy(this->address(loc - size_new), data.get_data(), size_new);
     } else {
         //put record on index of loc
-        memcpy(this->address(loc), data.get_data(), new_size);
+        memcpy(this->address(loc), data.get_data(), size_new);
     }
     put_header(); //store block header
-    put_header(record_id, new_size, loc);
+    put_header(record_id, size_new, loc);
 }
 
 // Put a 2-byte integer at given offset in block.
@@ -129,17 +129,6 @@ void SlottedPage::del(RecordID record_id) {
     put_header(record_id, 0, 0);
     u16 end = loc + size;
     slide(loc, end);
-}
-
-//Returns all record ids
-RecordIDs* SlottedPage::ids(void) {
-    RecordIDs* all = new RecordIDs;
-    
-    for (RecordId i = 1; i < this->num_records; i++) {
-        get_header(size, loc, i);
-        if (loc != 0) all->push_back(i);
-    }
-    return all;
 }
 
 // Make a void* pointer for a given offset into the data block.
@@ -172,17 +161,29 @@ bool SlottedPage::has_room(u16 size) {
     return (room >= size);
 }
 
-void slide(u16 start, u16 end) {
+//Returns all record ids
+RecordIDs* SlottedPage::ids(void) {
+    u16 size, loc;
+    RecordIDs* all = new RecordIDs;
+    
+    for (RecordID i = 1; i < this->num_records; i++) {
+        get_header(size, loc, i);
+        if (loc != 0) all->push_back(i);
+    }
+    return all;
+}
+
+void SlottedPage::slide(u16 start, u16 end) {
     u16 slide = end - start;
     if (slide == 0) return;
 
     //slide data 
-    memcpy(address(this->end_free + slide + 1), address(this->end_free + 1), slide);
+    memcpy(this->address(this->end_free + slide + 1), address(this->end_free + 1), slide);
 
-    RecordIDs* curr = ids();
+    RecordIDs* curr = this->ids();
     for (RecordID& id : *curr) {
         u16 size, loc;
-        get_header(size loc, id);
+        get_header(size, loc, id);
         if (loc <= start) {
             loc += slide;
             put_header(id, size, loc);
@@ -193,6 +194,7 @@ void slide(u16 start, u16 end) {
 }
 
 //---------------HeapFile---------------
+/*
 HeapFile::~HeapFile() {
 
 }
@@ -362,3 +364,5 @@ Handles* HeapTable::select(const ValueDict* where) {
     delete block_ids;
     return handles;
 }
+
+*/
