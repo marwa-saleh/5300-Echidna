@@ -28,7 +28,7 @@ string printExpr(const Expr *expression);
 string columnDefinitionToString(const ColumnDefinition* col);
 
 /**
- * Convert the hyrise select statement into the equivalent string
+ * Convert the select statement into the equivalent string
  * @param stmt  select statement to unparse
  * @return     SQL string equivalent to *stmt
  */
@@ -50,7 +50,7 @@ string printSelectStatement(const SelectStatement *stmt) {
 }
 
 /**
- * Convert the hyrise create statement into the equivalent string
+ * Convert the create statement into the equivalent string
  * @param stmt  create statement to unparse
  * @return     SQL string equivalent to *stmt
  */
@@ -70,7 +70,7 @@ string printCreateStatement(const CreateStatement* stmt){
 }
 
 /**
- * Convert the hyrise insert statement into the equivalent string
+ * Convert the insert statement into the equivalent string
  * @param stmt  insert statement to unparse
  * @return     SQL string equivalent to *stmt
  */
@@ -80,8 +80,8 @@ string printInsertStatement(const InsertStatement* stmt) {
 }
 
 /**
- * Converts the hyrise parse tree back into a SQL string
- * @param stmt	hyrise statement
+ * Converts the parse tree back into a SQL string
+ * @param stmt statement
  * @return 		SQL equivalent to parseTree
  */
 string execute(const SQLStatement *stmt) {
@@ -128,7 +128,7 @@ string execute(const SQLStatement *stmt) {
 }
 
 /**
- * Convert the hyrise table reference into the equivalent string
+ * Convert the table reference into the equivalent string
  * @param table  TableRef to unparse
  * @return     SQL string equivalent to *table
  */
@@ -186,8 +186,8 @@ string tableRefExprToString(const TableRef* table){
 }
 
 /**
- * Convert the hyrise operator Expression into the equivalent string
- * @param expr  operator expression to unparse
+ * Convert the operator Expression into the equivalent string
+ * @param expr operator expression to unparse
  * @return     SQL string equivalent to *expr
  */
 string operatorExprToString(const Expr* expr){
@@ -220,7 +220,7 @@ string operatorExprToString(const Expr* expr){
 }
 
 /**
- * Convert the hyrise ColumnDefinition AST back into the equivalent SQL
+ * Convert the ColumnDefinition AST back into the equivalent SQL
  * @param col  column definition to unparse
  * @return     SQL equivalent to *col
  */
@@ -244,7 +244,7 @@ string columnDefinitionToString(const ColumnDefinition* col) {
 }
 
 /**
- * Convert the hyrise Expression into the equivalent string
+ * Convert the Expression into the equivalent string
  * @param expression  expression to unparse
  * @return     SQL string equivalent to *expression
  */
