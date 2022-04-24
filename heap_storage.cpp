@@ -258,7 +258,7 @@ void HeapFile::put(DbBlock *block) {
 }
 
 BlockIDs* HeapFile::block_ids(){
-    vector<BlockID>* blockIds;
+    vector<BlockIDs>* blockIds;
     for(BlockID i = 1; i < (BlockID)this->last + 1; i++){
         blockIds->push_back(i);
     }
