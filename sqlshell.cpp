@@ -278,9 +278,9 @@ int main(int argc, char *argv[]) {
         string query;
         getline(cin, query);
         if (query.length() == 0)
-            continue;  // blank line -- just skip
+            continue;  
         if (query == "quit")
-            break;  // only way to get out
+            break;  
         if (query == "test") {
             cout << "test_heap_storage: " << (test_heap_storage() ? "ok" : "failed") << endl;
             continue;
