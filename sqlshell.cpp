@@ -260,14 +260,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     char *envHome = argv[1];
-    cout << "(sql5300: running with database environment at " << envHome << ")" << endl;
+    cout << "(sqlshell: running with database environment at " << envHome << ")" << endl;
     DbEnv env(0U);
     env.set_message_stream(&cout);
     env.set_error_stream(&cerr);
     try {
         env.open(envHome, DB_CREATE | DB_INIT_MPOOL, 0);
     } catch (DbException &exc) {
-        cerr << "(sql5300: " << exc.what() << ")";
+        cerr << "(sqlshell: " << exc.what() << ")";
         exit(1);
     }
     _DB_ENV = &env;
