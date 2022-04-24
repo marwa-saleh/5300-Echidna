@@ -249,7 +249,7 @@ string execute(const SQLStatement *stmt) {
 }
 
 /**
- * Main entry point of the sql5300 program
+ * Main entry point of the sqlshell program
  * @args dbenvpath  the path to the BerkeleyDB database environment
  */
 int main(int argc, char *argv[]) {
