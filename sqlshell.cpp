@@ -252,7 +252,7 @@ string execute(const SQLStatement *stmt) {
  * Main entry point of the sql5300 program
  * @args dbenvpath  the path to the BerkeleyDB database environment
  */
-int main(int argc, char *argv[]) {
+int main(void) {
 
     // Open/create the db enviroment
     if (argc != 2) {
