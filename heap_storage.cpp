@@ -313,22 +313,6 @@ Handle HeapTable::insert(const ValueDict *row) {
     return this->append(this->validate(row));
 }
 
-void HeapTable::update(const Handle handle, const ValueDict *new_values) {
-    //Not in milestone2
-}
-
-void HeapTable::del(const Handle handle) {
-    //Not in milestone2
-}
-
-ValueDict* HeapTable::project(Handle handle) {
-    //Not in milestone2
-}
-
-ValueDict* HeapTable::project(Handle handle, const ColumnNames *column_names) {
-    //Not in milestone2
-}
-
 Handles* HeapTable::select(void) {
     Handles* handles = new Handles();
     BlockIDs* block_ids = file.block_ids();
