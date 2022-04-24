@@ -3,10 +3,18 @@
 //heap_storage.cpp
 //4-13-2022
 
-#include "heap_storage.h"
+#include <vector>
+#include "db_cxx.h"
 #include <cstring>
+#include <map>
+#include <algorithm>
+#include <iostream>
+#include "storage_engine.h"
+#include "heap_storage.h"
+#include <cstdint>
 
 using namespace std;
+typedef uint16_t u16;
 
 //from provided test_heap_storage.cpp
 bool test_heap_storage() {
