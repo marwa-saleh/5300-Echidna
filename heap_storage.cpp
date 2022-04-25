@@ -455,15 +455,17 @@ bool test_heap_storage() {
     ValueDict *result = table.project((*handles)[0]);
     cout << "project ok" << endl;
     Value value = (*result)["a"];
-    if (value.n != 12)
+    if (value.n != 12) {
         delete handles;
         delete result;
         return false;
+    }
     value = (*result)["b"];
-    if (value.s != "Hello!")
+    if (value.s != "Hello!") {
         delete handles;
         delete result;
         return false;
+    }
     table.drop();
     delete handles;
     delete result;
