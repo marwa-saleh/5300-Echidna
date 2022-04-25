@@ -1,6 +1,6 @@
 //Meryll Cruz and Darin Hui
 //CPSC 4300/5300 
-//sqlshell.cpp
+//sql5300.cpp
 //4-24-2022
 
 #include <stdio.h>
@@ -249,7 +249,7 @@ string execute(const SQLStatement *stmt) {
 }
 
 /**
- * Main entry point of the sqlshell program
+ * Main entry point of the sql5300 program
  * @args dbenvpath  the path to the BerkeleyDB database environment
  */
 int main(int argc, char *argv[]) {
@@ -260,14 +260,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     char *envHome = argv[1];
-    cout << "(sqlshell: running with database environment at " << envHome << ")" << endl;
+    cout << "(sql5300: running with database environment at " << envHome << ")" << endl;
     DbEnv env(0U);
     env.set_message_stream(&cout);
     env.set_error_stream(&cerr);
     try {
         env.open(envHome, DB_CREATE | DB_INIT_MPOOL, 0);
     } catch (DbException &exc) {
-        cerr << "(sqlshell: " << exc.what() << ")";
+        cerr << "(sql5300: " << exc.what() << ")";
         exit(1);
     }
     _DB_ENV = &env;
