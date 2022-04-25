@@ -16,50 +16,9 @@
 using namespace std;
 typedef uint16_t u16;
 
-//from provided test_heap_storage.cpp
-// bool test_heap_storage() {
-//     ColumnNames column_names;
-//     column_names.push_back("a");
-//     column_names.push_back("b");
-//     ColumnAttributes column_attributes;
-//     ColumnAttribute ca(ColumnAttribute::INT);
-//     column_attributes.push_back(ca);
-//     ca.set_data_type(ColumnAttribute::TEXT);
-//     column_attributes.push_back(ca);
-//     HeapTable table1("_test_create_drop_cpp", column_names, column_attributes);
-//     table1.create();
-//     cout << "create ok" << endl;
-//     table1.drop();  // drop makes the object unusable because of BerkeleyDB restriction -- maybe want to fix this some day
-//     cout << "drop ok" << endl;
-
-//     HeapTable table("_test_data_cpp", column_names, column_attributes);
-//     table.create_if_not_exists();
-//     cout << "create_if_not_exsts ok" << endl;
-
-//     ValueDict row;
-//     row["a"] = Value(12);
-//     row["b"] = Value("Hello!");
-//     cout << "try insert" << endl;
-//     table.insert(&row);
-//     cout << "insert ok" << endl;
-//     // Handles* handles = table.select();
-//     // cout << "select ok " << handles->size() << endl;
-//     // ValueDict *result = table.project((*handles)[0]);
-//     // cout << "project ok" << endl;
-//     // Value value = (*result)["a"];
-//     // if (value.n != 12)
-//     //     return false;
-//     // value = (*result)["b"];
-//     // if (value.s != "Hello!")
-//     //     return false;
-//     // table.drop();
-
-//     return true;
-// }
-
-
-//---------------Slotted Page---------------
-
+/**
+ * @class Slotted Page
+ */
 typedef u_int16_t u16;
 
 //Provided constructor
@@ -424,4 +383,84 @@ ValueDict * HeapTable::unmarshal(Dbt *data){
     }
     delete[] bytes;
     return row;
+}
+
+void HeapTable::del(const Handle handle) {
+    open();
+    BlockID blk_id = handle.first;
+    RecordID rec_id = handle.second;
+
+    SlottedPage* block = this->file.get(blk_id);
+    block->del(rec_id);
+    this->file.put(block);
+    delete block;
+}
+
+ValueDict* HeapTable::project(Handle handle) {
+    return project(handle, &this->column_names);
+}
+
+ValueDict* HeapTable::project(Handle handle, const ColumnNames *column_names) {
+    BlockID blk_id = handle.first;
+    RecordID rec_id = handle.second;
+    SlottedPage* block = file.get(blk_id);
+    Dbt* data = block->get(rec_id);
+    ValueDict* row = unmarshal(data);
+
+    if (column_names->empty()) return row;
+    ValueDict* output = new ValueDict();
+
+    for (auto const& column_name : *column_names) {
+        (*output)[column_name] = (*row)[column_name];
+    }
+
+    delete row;
+    delete block;
+    delete data;
+    return output;
+}
+
+void HeapTable::update(const Handle handle, const ValueDict *new_values) {
+    throw ("Need to implement");
+}
+
+//from provided test_heap_storage.cpp
+bool test_heap_storage() {
+    ColumnNames column_names;
+    column_names.push_back("a");
+    column_names.push_back("b");
+    ColumnAttributes column_attributes;
+    ColumnAttribute ca(ColumnAttribute::INT);
+    column_attributes.push_back(ca);
+    ca.set_data_type(ColumnAttribute::TEXT);
+    column_attributes.push_back(ca);
+    HeapTable table1("_test_create_drop_cpp", column_names, column_attributes);
+    table1.create();
+    cout << "create ok" << endl;
+    table1.drop();  // drop makes the object unusable because of BerkeleyDB restriction -- maybe want to fix this some day
+    cout << "drop ok" << endl;
+
+    HeapTable table("_test_data_cpp", column_names, column_attributes);
+    table.create_if_not_exists();
+    cout << "create_if_not_exsts ok" << endl;
+
+    ValueDict row;
+    row["a"] = Value(12);
+    row["b"] = Value("Hello!");
+    cout << "try insert" << endl;
+    table.insert(&row);
+    cout << "insert ok" << endl;
+    Handles* handles = table.select();
+    cout << "select ok " << handles->size() << endl;
+    ValueDict *result = table.project((*handles)[0]);
+    cout << "project ok" << endl;
+    Value value = (*result)["a"];
+    if (value.n != 12)
+        return false;
+    value = (*result)["b"];
+    if (value.s != "Hello!")
+        return false;
+    table.drop();
+
+    return true;
 }
