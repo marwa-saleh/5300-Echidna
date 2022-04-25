@@ -1,8 +1,8 @@
 # 5300-Echidna
 
 Group Members:
-Meryll Cruz
-Darin Hui
+Meryll Cruz\
+Darin Hui\
 
 ## Sprint Verano
 ### Milestone 1
