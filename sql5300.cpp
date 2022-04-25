@@ -257,7 +257,7 @@ int main(int argc, char *argv[]) {
     // Open/create the db enviroment
     if (argc != 2) {
         cerr << "Usage: cpsc5300: dbenvpath" << endl;
-        return EXIT_FAILURE;
+        return 1;
     }
     char *envHome = argv[1];
     cout << "(sql5300: running with database environment at " << envHome << ")" << endl;
@@ -285,25 +285,20 @@ int main(int argc, char *argv[]) {
             cout << "test_heap_storage: " << (test_heap_storage() ? "ok" : "failed") << endl;
             continue;
         }
-        // parse and execute
-        SQLParserResult *parse = SQLParser::parseSQLString(query);
-        if (!parse->isValid()) {
+
+        // use the sql parser to get us our AST
+        SQLParserResult *result = SQLParser::parseSQLString(query);
+        if (!result->isValid()) {
             cout << "invalid SQL: " << query << endl;
-            cout << parse->errorMsg() << endl;
-        } else {
-            for (uint i = 0; i < parse->size(); ++i) {
-                const SQLStatement *statement = parse->getStatement(i);
-                try {
-                    cout << ParseTreeToString::statement(statement) << endl;
-                    QueryResult *result = SQLExec::execute(statement);
-                    cout << *result << endl;
-                    delete result;
-                } catch (SQLExecError &e) {
-                    cout << "Error: " << e.what() << endl;
-                }
-            }
+            delete result;
+            continue;
         }
-        delete parse;
+
+        // execute the statement
+        for (uint i = 0; i < result->size(); ++i) {
+            cout << execute(result->getStatement(i)) << endl;
+        }
+        delete result;
     }
     return EXIT_SUCCESS;
 }
