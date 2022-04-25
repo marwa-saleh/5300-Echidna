@@ -7,10 +7,22 @@ Meryll Cruz, Darin Hui
 ### Milestone 1
 Parses command line input query to AST returned by the HyLine parser.
 
-Use to compile and test:
+Use to build and run the program:
 ```
 make
 ./sql5300 ~/cpsc5300/data
 ```
 
 ### Milestone 2
+Implement a rudimentary storage engine. 
+
+Use to build and run the program:
+```
+make
+./sql5300 ~/cpsc5300/data
+```
+
+Use to test:
+```
+SQL> test
+```
