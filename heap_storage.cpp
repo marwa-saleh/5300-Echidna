@@ -450,8 +450,8 @@ bool test_heap_storage() {
     cout << "try insert" << endl;
     table.insert(&row);
     cout << "insert ok" << endl;
-    Handles* handles = table.select();
-    cout << "select ok " << handles->size() << endl;
+    // Handles* handles = table.select();
+    // cout << "select ok " << handles->size() << endl;
     // ValueDict *result = table.project((*handles)[0]);
     // cout << "project ok" << endl;
     // Value value = (*result)["a"];
