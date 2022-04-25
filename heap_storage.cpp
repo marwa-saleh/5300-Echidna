@@ -238,7 +238,7 @@ void HeapFile::db_open(uint flags) {
 }
 
 /**
- * @class HeapTable - Heap storage engine (implementation of DbRelation)
+ * HeapTable - Heap storage engine (implementation of DbRelation)
  */
 HeapTable::HeapTable(Identifier table_name, ColumnNames column_names, ColumnAttributes column_attributes) : DbRelation(table_name, column_names, column_attributes), file(table_name) {}
 
@@ -339,7 +339,7 @@ Handles *HeapTable::select(const ValueDict *where) {
  * @param handle row to be projected
  * @return a sequence of all values for handle
  */
-ValueDict *HeapTable::project(Handle handle) {
+ValueDict* HeapTable::project(Handle handle) {
     return project(handle, &this->column_names);
 }
 
@@ -349,7 +349,7 @@ ValueDict *HeapTable::project(Handle handle) {
  * @param column_names of columns to be included in the result
  * @return a sequence of values for handle given by column_names
  */
-ValueDict *HeapTable::project(Handle handle, const ColumnNames *column_names) {
+ValueDict* HeapTable::project(Handle handle, const ColumnNames *column_names) {
     BlockID block_id = handle.first;
     RecordID record_id = handle.second;
     SlottedPage *block = file.get(block_id);
@@ -375,7 +375,7 @@ ValueDict *HeapTable::project(Handle handle, const ColumnNames *column_names) {
  * @return the full row dictionary
  * @throws DbRelationError if not valid
  */
-ValueDict *HeapTable::validate(const ValueDict *row) const {
+ValueDict* HeapTable::validate(const ValueDict *row) const {
     ValueDict *full_row = new ValueDict();
     for (auto const &column_name: this->column_names) {
         Value value;
@@ -414,7 +414,7 @@ Handle HeapTable::append(const ValueDict *row) {
  * @param row data for the tuple
  * @return bits of the record as it should appear on disk
  */
-Dbt *HeapTable::marshal(const ValueDict *row) const {
+Dbt* HeapTable::marshal(const ValueDict *row) const {
     char *bytes = new char[DbBlock::BLOCK_SZ]; // more than we need (we insist that one row fits into DbBlock::BLOCK_SZ)
     uint offset = 0;
     uint col_num = 0;
@@ -459,7 +459,7 @@ Dbt *HeapTable::marshal(const ValueDict *row) const {
  * @param data file data for the tuple
  * @return row data for the tuple
  */
-ValueDict *HeapTable::unmarshal(Dbt *data) const {
+ValueDict* HeapTable::unmarshal(Dbt *data) const {
     ValueDict *row = new ValueDict();
     Value value;
     char *bytes = (char *) data->get_data();
