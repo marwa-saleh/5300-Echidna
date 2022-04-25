@@ -456,11 +456,16 @@ bool test_heap_storage() {
     cout << "project ok" << endl;
     Value value = (*result)["a"];
     if (value.n != 12)
+        delete handles;
+        delete result;
         return false;
     value = (*result)["b"];
     if (value.s != "Hello!")
+        delete handles;
+        delete result;
         return false;
     table.drop();
-
+    delete handles;
+    delete result;
     return true;
 }
