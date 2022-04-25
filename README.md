@@ -26,3 +26,8 @@ Use to test:
 ```
 SQL> test
 ```
+
+Use the following command to clear folder for retesting:
+```
+rm -f ~/cpsc5300/data/*
+```
