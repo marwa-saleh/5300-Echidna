@@ -1,7 +1,10 @@
 # 5300-Echidna
 
-Group Members:
+Group Members for sprint 1:
 Meryll Cruz, Darin Hui
+
+Group Members for sprin 2:
+Thomas Bakken, Fangsheng Xu
 
 ## Sprint Verano
 ### Milestone 1
@@ -14,7 +17,8 @@ make
 ```
 
 ### Milestone 2
-Implement a rudimentary storage engine. 
+Implement a rudimentary storage engine.
+
 
 Use to build and run the program:
 ```
