@@ -52,9 +52,9 @@ Dbt* SlottedPage::get(RecordID record_id) {
     get_header(size, loc, record_id);
 
     if (size == 0)
-        throw ("Record id is not a record: " + record_id);
+        return nullptr; //tombstone
 
-    return new Dbt(address(loc), size);
+    return new Dbt(this->address(loc), size);
 }
 
 // Get 2-byte integer at given offset in block.
@@ -66,21 +66,21 @@ u16 SlottedPage::get_n(u16 offset) {
 void SlottedPage::put(RecordID record_id, const Dbt &data) {
     u16 size, loc;
     get_header(size, loc, record_id);
-    u16 size_new = data.get_size();
-
-    if (size_new > size) { //do we need to slide records to make space
-        if (!has_room(size_new - size)) { //is there enough room in block
-                throw DbBlockNoRoomError("not enough room for new record");
+    u16 new_size = (u16) data.get_size();
+    if (new_size > size) { //do we need to slide records to make space
+        u16 extra = new_size - size;
+        if (!has_room(extra)) { //is there enough room in block
+            throw DbBlockNoRoomError("not enough room for new record");
         }
-        //slide records, put record on new index
-        slide(loc, loc - size_new);
-        memcpy(this->address(loc - size_new), data.get_data(), size_new);
-    } else {
-        //put record on index of loc
-        memcpy(this->address(loc), data.get_data(), size_new);
+        slide(loc, loc - extra);
+        memcpy(this->address(loc - extra), data.get_data(), new_size);
+    } 
+    else {
+        memcpy(this->address(loc), data.get_data(), new_size);
+        slide(loc + new_size, loc);
     }
-    put_header(); //store block header
-    put_header(record_id, size_new, loc);
+    get_header(size, loc, record_id);
+    put_header(record_id, new_size, loc);
 }
 
 // Put a 2-byte integer at given offset in block.
@@ -131,24 +131,28 @@ bool SlottedPage::has_room(u16 size) {
 //Returns all record ids
 RecordIDs* SlottedPage::ids(void) {
     u16 size, loc;
-    RecordIDs* all = new RecordIDs;
+    RecordIDs* record_ids = new RecordIDs();
     
-    for (RecordID i = 1; i < this->num_records; i++) {
-        get_header(size, loc, i);
-        if (loc != 0) all->push_back(i);
+    for (u16 id = 1; id <= this->num_records; id++) {
+        get_header(size, loc, id);
+        if (loc != 0) record_ids->push_back(id);
     }
-    return all;
+    return record_ids;
 }
 
 void SlottedPage::slide(u16 start, u16 end) {
     u16 slide = end - start;
     if (slide == 0) return;
 
-    //slide data 
-    memcpy(this->address(this->end_free + slide + 1), address(this->end_free + 1), slide);
+    // slide data
+    void *to = this->address(this->end_free + 1 + slide);
+    void *from = this->address(this->end_free + 1);
+    int bytes = start - (this->end_free + 1);
+    memmove(to, from, bytes);
 
-    RecordIDs* curr = this->ids();
-    for (RecordID& id : *curr) {
+    // fix headers
+    RecordIDs *record_ids = ids();
+    for (auto const &id : *record_ids) {
         u16 size, loc;
         get_header(size, loc, id);
         if (loc <= start) {
@@ -156,7 +160,8 @@ void SlottedPage::slide(u16 start, u16 end) {
             put_header(id, size, loc);
         }
     }
-    end_free += slide;
+    delete record_ids;
+    this->end_free += slide;
     put_header();
 }
 /**
@@ -217,8 +222,8 @@ void HeapFile::put(DbBlock *block) {
 }
 
 BlockIDs* HeapFile::block_ids(){
-    BlockIDs* blockIds(0);
-    for(BlockID i = 1; i < (BlockID)this->last + 1; i++){
+    BlockIDs* blockIds = new BlockIDs();
+    for(BlockID i = 1; i <= this->last; i++){
         blockIds->push_back(i);
     }
     return blockIds;
@@ -249,7 +254,8 @@ void HeapTable::create(void) {
 void HeapTable::create_if_not_exists(void) {
     try {
         this->open();
-    } catch (DbException &e)//(DbRelationError const&)
+    } 
+    catch (DbException const&)//(DbRelationError const&)
     {
         this->create();
     }
@@ -275,11 +281,12 @@ Handle HeapTable::insert(const ValueDict *row) {
 Handles* HeapTable::select(void) {
     Handles* handles = new Handles();
     BlockIDs* block_ids = file.block_ids();
-    for (auto const& block_id: *block_ids) {
+    for (auto const& block_id: *block_ids) { 
         SlottedPage* block = file.get(block_id);
         RecordIDs* record_ids = block->ids();
-        for (auto const& record_id: *record_ids)
+        for (auto const& record_id: *record_ids) {
             handles->push_back(Handle(block_id, record_id));
+        }
         delete record_ids;
         delete block;
     }
@@ -363,25 +370,30 @@ Dbt* HeapTable::marshal(const ValueDict *row) {
 }
 
 ValueDict * HeapTable::unmarshal(Dbt *data){
-    std::map<Identifier, Value> * row = {};
-    char *bytes = new char[DbBlock::BLOCK_SZ];
+    ValueDict *row = new ValueDict();
+    Value value;
+    char *bytes = (char *) data->get_data();
     uint offset = 0;
     uint col_num = 0;
     for (auto const& column_name: this->column_names) {
         ColumnAttribute ca = this->column_attributes[col_num++];
-        ValueDict::const_iterator column = row->find(column_name);
-        Value value = column->second;
-        if (ca.get_data_type() == ColumnAttribute::DataType::INT) {
+        value.data_type = ca.get_data_type();
+        if (value.data_type == ColumnAttribute::DataType::INT) {
             value.n = *(int32_t*) (bytes + offset);
             offset += sizeof(int32_t);
-        } else if (ca.get_data_type() == ColumnAttribute::DataType::TEXT) {
-
+        } else if (value.data_type == ColumnAttribute::DataType::TEXT) {
+            u16 size = *(u16 *) (bytes + offset);
+            offset += sizeof(u16);
+            char buffer[DbBlock::BLOCK_SZ];
+            memcpy(buffer, bytes + offset, size);
+            buffer[size] = '\0';
+            value.s = string(buffer);  // assume ascii for now
+            offset += size;
         } else {
             throw DbRelationError("Only know how to marshal INT and TEXT");
         }
         (*row)[column_name] = value;
     }
-    delete[] bytes;
     return row;
 }
 
@@ -405,11 +417,12 @@ ValueDict* HeapTable::project(Handle handle, const ColumnNames *column_names) {
     RecordID rec_id = handle.second;
     SlottedPage* block = file.get(blk_id);
     Dbt* data = block->get(rec_id);
+    cout << "start unmarshal" << endl;
     ValueDict* row = unmarshal(data);
+    cout << "unmarshalled" << endl;
 
     if (column_names->empty()) return row;
     ValueDict* output = new ValueDict();
-
     for (auto const& column_name : *column_names) {
         (*output)[column_name] = (*row)[column_name];
     }
@@ -424,8 +437,130 @@ void HeapTable::update(const Handle handle, const ValueDict *new_values) {
     throw ("Need to implement");
 }
 
-//from provided test_heap_storage.cpp
+
+/**
+ * From Instructor solution, used for testing
+ * Print out given failure message and return false.
+ * @param message reason for failure
+ * @return false
+ */
+bool assertion_failure(string message) {
+    cout << "FAILED TEST: " << message << endl;
+    return false;
+}
+
+/**
+ * From Instructor solution, used for testing
+ * Testing function for SlottedPage. 
+ * @return true if testing succeeded, false otherwise
+ */
+bool test_slotted_page() {
+    // construct one
+    char blank_space[DbBlock::BLOCK_SZ];
+    Dbt block_dbt(blank_space, sizeof(blank_space));
+    SlottedPage slot(block_dbt, 1, true);
+
+    // add a record
+    char rec1[] = "hello";
+    Dbt rec1_dbt(rec1, sizeof(rec1));
+    RecordID id = slot.add(&rec1_dbt);
+    if (id != 1)
+        return assertion_failure("add id 1");
+
+    // get it back
+    Dbt *get_dbt = slot.get(id);
+    string expected(rec1, sizeof(rec1));
+    string actual((char *) get_dbt->get_data(), get_dbt->get_size());
+    delete get_dbt;
+    if (expected != actual)
+        return assertion_failure("get 1 back " + actual);
+
+    // add another record and fetch it back
+    char rec2[] = "goodbye";
+    Dbt rec2_dbt(rec2, sizeof(rec2));
+    id = slot.add(&rec2_dbt);
+    if (id != 2)
+        return assertion_failure("add id 2");
+
+    // get it back
+    get_dbt = slot.get(id);
+    expected = string(rec2, sizeof(rec2));
+    actual = string((char *) get_dbt->get_data(), get_dbt->get_size());
+    delete get_dbt;
+    if (expected != actual)
+        return assertion_failure("get 2 back " + actual);
+
+    // test put with expansion (and slide and ids)
+    char rec1_rev[] = "something much bigger";
+    rec1_dbt = Dbt(rec1_rev, sizeof(rec1_rev));
+    slot.put(1, rec1_dbt);
+    // check both rec2 and rec1 after expanding put
+    get_dbt = slot.get(2);
+    expected = string(rec2, sizeof(rec2));
+    actual = string((char *) get_dbt->get_data(), get_dbt->get_size());
+    delete get_dbt;
+    if (expected != actual)
+        return assertion_failure("get 2 back after expanding put of 1 " + actual);
+    get_dbt = slot.get(1);
+    expected = string(rec1_rev, sizeof(rec1_rev));
+    actual = string((char *) get_dbt->get_data(), get_dbt->get_size());
+    delete get_dbt;
+    if (expected != actual)
+        return assertion_failure("get 1 back after expanding put of 1 " + actual);
+    // test put with contraction (and slide and ids)
+    rec1_dbt = Dbt(rec1, sizeof(rec1));
+    slot.put(1, rec1_dbt);
+    // check both rec2 and rec1 after contracting put
+    get_dbt = slot.get(2);
+    expected = string(rec2, sizeof(rec2));
+    actual = string((char *) get_dbt->get_data(), get_dbt->get_size());
+    delete get_dbt;
+    if (expected != actual)
+        return assertion_failure("get 2 back after contracting put of 1 " + actual);
+    get_dbt = slot.get(1);
+    expected = string(rec1, sizeof(rec1));
+    actual = string((char *) get_dbt->get_data(), get_dbt->get_size());
+    delete get_dbt;
+    if (expected != actual)
+        return assertion_failure("get 1 back after contracting put of 1 " + actual);
+
+    // test del (and ids)
+    RecordIDs *id_list = slot.ids();
+    if (id_list->size() != 2 || id_list->at(0) != 1 || id_list->at(1) != 2)
+        return assertion_failure("ids() with 2 records");
+    delete id_list;
+    slot.del(1);
+    id_list = slot.ids();
+    if (id_list->size() != 1 || id_list->at(0) != 2)
+        return assertion_failure("ids() with 1 record remaining");
+    delete id_list;
+    get_dbt = slot.get(1);
+    if (get_dbt != nullptr)
+        return assertion_failure("get of deleted record was not null");
+
+    // try adding something too big
+    rec2_dbt = Dbt(nullptr, DbBlock::BLOCK_SZ - 10); // too big, but only because we have a record in there
+    try {
+        slot.add(&rec2_dbt);
+        return assertion_failure("failed to throw when add too big");
+    } catch (const DbBlockNoRoomError &exc) {
+        // test succeeded - this is the expected path
+    } catch (...) {
+        // Note that this won't catch segfault signals -- but in that case we also know the test failed
+        return assertion_failure("wrong type thrown when add too big");
+    }
+
+    return true;
+}
+
+/** 
+ * From Instructor solution, used for testing
+ */
 bool test_heap_storage() {
+    if (!test_slotted_page())
+        return assertion_failure("slotted page tests failed");
+    cout << endl << "slotted page tests ok" << endl;
+
     ColumnNames column_names;
     column_names.push_back("a");
     column_names.push_back("b");
@@ -450,24 +585,24 @@ bool test_heap_storage() {
     cout << "try insert" << endl;
     table.insert(&row);
     cout << "insert ok" << endl;
-    // Handles* handles = table.select();
-    // cout << "select ok " << handles->size() << endl;
-    // ValueDict *result = table.project((*handles)[0]);
-    // cout << "project ok" << endl;
-    // Value value = (*result)["a"];
-    // if (value.n != 12) {
-    //     delete handles;
-    //     delete result;
-    //     return false;
-    // }
-    // value = (*result)["b"];
-    // if (value.s != "Hello!") {
-    //     delete handles;
-    //     delete result;
-    //     return false;
-    // }
-    // table.drop();
-    // delete handles;
-    // delete result;
+    Handles* handles = table.select();
+    cout << "select ok " << handles->size() << endl;
+    ValueDict *result = table.project((*handles)[0]);
+    cout << "project ok" << endl;
+    Value value = (*result)["a"];
+    if (value.n != 12) {
+        delete handles;
+        delete result;
+        return false;
+    }
+    value = (*result)["b"];
+    if (value.s != "Hello!") {
+        delete handles;
+        delete result;
+        return false;
+    }
+    table.drop();
+    delete handles;
+    delete result;
     return true;
 }
