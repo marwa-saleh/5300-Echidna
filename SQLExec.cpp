@@ -43,20 +43,19 @@ ostream &operator<<(ostream &out, const QueryResult &qres) {
 }
 
 /**
- * Query Result is comprised of column names, column attributes, and rows. (maybe messages too? python example)
+ * Destructor
  */
 QueryResult::~QueryResult() {
-    // FIXME
-    ColumnNames this->cn 
-    ColumnAttributes this->ca 
-    vector<ValueDict> this->rows
-
+    delete column_names;
+    delete column_attributes;
+    delete rows;
+    delete message;
 }
 
 
 QueryResult *SQLExec::execute(const SQLStatement *statement) {
     // initialize _tables table, if not yet present
-    if (tables == nullptr) {
+    if (this->tables == nullptr) {
         initialize_schema_tables();
         this->tables.create()
     }
@@ -87,6 +86,9 @@ SQLExec::column_definition(const ColumnDefinition *col, Identifier &column_name,
 }
 
 QueryResult *SQLExec::create(const CreateStatement *statement) {
+    if (statement->type != kCreateTable) {
+        return new QueryResult("Not Implemented")
+    }
     //initialize message
     string message = "Success"
     //table name
@@ -131,6 +133,9 @@ QueryResult *SQLExec::create(const CreateStatement *statement) {
 
 // DROP ...
 QueryResult *SQLExec::drop(const DropStatement *statement) {
+    if (statement->type != kDropTable) {
+        return new QueryResult("Not Implemented")
+    }
     Identifier table_name = str(statement->name);
     //drop the table
     this->tables.get_table().drop() //get_table creates a new table if it doesn't exist
@@ -151,7 +156,7 @@ QueryResult *SQLExec::show(const ShowStatement *statement) {
             return show_tables();
         }
         case kShowColumns {
-            return show_columns();
+            return show_columns(statement);
         }
         default {
             return new QueryResult("Not Possible")
