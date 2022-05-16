@@ -62,7 +62,10 @@ QueryResult *SQLExec::execute(const SQLStatement *statement) {
     // initialize _tables table, if not yet present
     if (tables == nullptr) {
         initialize_schema_tables();
-        tables->create();
+        tables = new Tables();
+        tables->open();
+        DbRelation *col_table = &tables->get_table(Columns::TABLE_NAME);
+        col_table->open();
     }
 
     try {
@@ -82,7 +85,6 @@ QueryResult *SQLExec::execute(const SQLStatement *statement) {
 }
 
 //Milestone 3 Code Below. 
-typedef vector<ValueDict> Rows;
 
 void
 SQLExec::column_definition(const ColumnDefinition *col, Identifier &column_name, ColumnAttribute &column_attribute) {
@@ -108,7 +110,7 @@ QueryResult *SQLExec::create(const CreateStatement *statement) {
         default :
             throw SQLExecError(string("Only create table implemented"));
     }
-
+    cout << "hey3" << endl;
     //initialize message
     string message = "Success";
     //table name
@@ -116,16 +118,20 @@ QueryResult *SQLExec::create(const CreateStatement *statement) {
     //insert new table row to _tables
     ValueDict new_tables_row;
     new_tables_row["table_name"] = Value(table_name);
+    
+    cout << "hey4" << endl;
     try {
+        cout << "create1" << endl;
         Handle tables_handle = tables->insert(&new_tables_row);
+        cout << "create2" << endl;
         tables->get_table(table_name); //creates the new table if
         DbRelation *col_table = &tables->get_table(Columns::TABLE_NAME);
         Handles columns_handles;
+
         try {
             //get column definitions (name and attributes)
             ValueDict new_columns_row;
             new_columns_row["table_name"] = Value(table_name);
-
             for (ColumnDefinition *col: *statement->columns) {
                 Identifier column_name;
                 ColumnAttribute column_attribute;
