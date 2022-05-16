@@ -1,4 +1,9 @@
-#include "sql_parser.h"
+/**
+ * @file ParseTreeToString.cpp - SQL unparsing class implementation
+ * @author Kevin Lundeen
+ * @see "Seattle University, CPSC5300, Spring 2022"
+ */
+#include "ParseTreeToString.h"
 
 using namespace std;
 using namespace hsql;
@@ -57,24 +62,14 @@ bool ParseTreeToString::is_reserved_word(string candidate) {
     return false;
 }
 
-/**
- * Convert the Expr AST for an operator expression back into the equivalent SQL
- * @param expr operator expression to unparse
- * @return     SQL equivalent to *expr
- */
 string ParseTreeToString::operator_expression(const Expr *expr) {
     if (expr == NULL)
         return "null";
 
     string ret;
-    // Unary prefix operator: NOT
     if (expr->opType == Expr::NOT)
         ret += "NOT ";
-
-    // Left-hand side of expression
     ret += expression(expr->expr) + " ";
-
-    // Operator itself
     switch (expr->opType) {
         case Expr::SIMPLE_OP:
             ret += expr->opChar;
@@ -86,20 +81,14 @@ string ParseTreeToString::operator_expression(const Expr *expr) {
             ret += "OR";
             break;
         default:
-            break; // e.g., for NOT
+            ret += "???";
+            break;
     }
-
-    // Right-hand side of expression (only present for binary operators)
     if (expr->expr2 != NULL)
         ret += " " + expression(expr->expr2);
     return ret;
 }
 
-/**
- * Convert the Expr AST back into the equivalent SQL
- * @param expr expression to unparse
- * @return     SQL equivalent to *expr
- */
 string ParseTreeToString::expression(const Expr *expr) {
     string ret;
     switch (expr->type) {
@@ -125,7 +114,7 @@ string ParseTreeToString::expression(const Expr *expr) {
             ret += operator_expression(expr);
             break;
         default:
-            ret += "???";  // in case there are exprssion types we don't know about here
+            ret += "???";
             break;
     }
     if (expr->alias != NULL)
@@ -133,11 +122,6 @@ string ParseTreeToString::expression(const Expr *expr) {
     return ret;
 }
 
-/**
- * Convert the TableRef AST back into the equivalent SQL
- * @param table  table reference AST to unparse
- * @return       SQL equivalent to *table
- */
 string ParseTreeToString::table_ref(const TableRef *table) {
     string ret;
     switch (table->type) {
@@ -171,7 +155,7 @@ string ParseTreeToString::table_ref(const TableRef *table) {
             }
             ret += table_ref(table->join->right);
             if (table->join->condition != NULL)
-                ret += " ON " + expressionToString(table->join->condition);
+                ret += " ON " + expression(table->join->condition);
             break;
         case kTableCrossProduct:
             bool doComma = false;
@@ -186,11 +170,6 @@ string ParseTreeToString::table_ref(const TableRef *table) {
     return ret;
 }
 
-/**
- * Convert the ColumnDefinition AST back into the equivalent SQL
- * @param col  column definition to unparse
- * @return     SQL equivalent to *col
- */
 string ParseTreeToString::column_definition(const ColumnDefinition *col) {
     string ret(col->name);
     switch (col->type) {
@@ -210,11 +189,6 @@ string ParseTreeToString::column_definition(const ColumnDefinition *col) {
     return ret;
 }
 
-/**
- * Execute an SQL select statement (but for now, just spit back the SQL)
- * @param stmt  AST for the select statement
- * @returns     a string (for now) of the SQL statment
- */
 string ParseTreeToString::select(const SelectStatement *stmt) {
     string ret("SELECT ");
     bool doComma = false;
@@ -230,43 +204,45 @@ string ParseTreeToString::select(const SelectStatement *stmt) {
     return ret;
 }
 
-/**
- * Execute an SQL insert statement (but for now, just spit back the SQL)
- * @param stmt  AST for the insert statement
- * @returns     a string (for now) of the SQL statment
- */
 string ParseTreeToString::insert(const InsertStatement *stmt) {
     return "INSERT ...";
 }
 
-/**
- * Parses a 
- * @param stmt  AST for the create statement
- * @returns     a string (for now) of the SQL statment
- */
 string ParseTreeToString::create(const CreateStatement *stmt) {
-    string ret("CREATE TABLE ");
-    if (stmt->type != CreateStatement::kTable)
-        return ret + "...";
-    if (stmt->ifNotExists)
-        ret += "IF NOT EXISTS ";
-    ret += string(stmt->tableName) + " (";
-    bool doComma = false;
-    for (ColumnDefinition *col : *stmt->columns) {
-        if (doComma)
-            ret += ", ";
-        ret += column_definition(col);
-        doComma = true;
+    string ret("CREATE ");
+    if (stmt->type == CreateStatement::kTable) {
+        ret += "TABLE ";
+        if (stmt->ifNotExists)
+            ret += "IF NOT EXISTS ";
+        ret += string(stmt->tableName) + " (";
+        bool doComma = false;
+        for (ColumnDefinition *col : *stmt->columns) {
+            if (doComma)
+                ret += ", ";
+            ret += column_definition(col);
+            doComma = true;
+        }
+        ret += ")";
+    } else if (stmt->type == CreateStatement::kIndex) {
+        ret += "INDEX ";
+        ret += string(stmt->indexName) + " ON ";
+        ret += string(stmt->tableName) + " USING " + stmt->indexType + " (";
+        ret += string(stmt->indexName) + " ON ";
+        ret += string(stmt->tableName) + " USING " + stmt->indexType + " (";
+        bool doComma = false;
+        for (auto const &col : *stmt->indexColumns) {
+            if (doComma)
+                ret += ", ";
+            ret += string(col);
+            doComma = true;
+        }
+        ret += ")";
+    } else {
+        ret += "...";
     }
-    ret += ")";
     return ret;
 }
 
-/**
- * Execute an SQL drop statement
- * @param stmt  AST for the drop statement
- * @returns     a string of the SQL statment
- */
 string ParseTreeToString::drop(const DropStatement *stmt) {
     string ret("DROP ");
     switch (stmt->type) {
@@ -290,7 +266,7 @@ string ParseTreeToString::show(const ShowStatement *stmt) {
             ret += string("COLUMNS FROM ") + stmt->tableName;
             break;
         case ShowStatement::kIndex:
-            ret += "INDEX";
+            ret += string("INDEX FROM ") + stmt->tableName;
             break;
         default:
             ret += "?what?";
@@ -325,3 +301,4 @@ string ParseTreeToString::statement(const SQLStatement *stmt) {
             return "Not implemented";
     }
 }
+

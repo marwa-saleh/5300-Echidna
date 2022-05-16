@@ -1,5 +1,5 @@
 /**
- * @file sql_parser.h - SQL unparsing class
+ * @file ParseTreeToString.h - SQL unparsing class
  * @author Kevin Lundeen
  * @see "Seattle University, CPSC5300, Spring 2022"
  */
@@ -49,3 +49,4 @@ private:
 
     static std::string show(const hsql::ShowStatement *stmt);
 };
+
