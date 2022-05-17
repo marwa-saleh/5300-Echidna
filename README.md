@@ -1,34 +1,39 @@
-# 5300-Instructor
-Instructor's DB Relation Manager project for CPSC5300/4300 at Seattle U, Spring 2022
+# 5300-Giraffe
 
-Usage (argument is database directory):
-<pre>
+_Sprint Verano_
+
+Sprint 1 Team:
+
+Sprint 2 Team:
+Thomas Bakken
+Fangsheng Xu
+
+## Milestone 1:
+
+Program written in C++ that runs from the command line and prompts the user for SQL statements and then executes them one at a time, just like the mysql program.
+
+To build the program:
+$ make
+
+To run the program:
 $ ./sql5300 ~/cpsc5300/data
-</pre>
 
-## Tags
-- <code>Milestone1</code> is playing around with the AST returned by the HyLine parser and general setup of the command loop.
-- <code>Milestone2h</code> has the intructor-provided files for Milestone2. (Note that heap_storage.cpp is just a stub.)
-- <code>Milestone2</code> is the instructor's attempt to complete the Milestone 2 assignment.
-- <code>Milestone3_prep</code> has the instructor-provided files for Milestone 3. The students' work is in <code>SQLExec.cpp</code> labeled with <code>FIXME</code>.
-- <code>Milestone4_prep</code> has the instructor-provided files for Milestone 4. The students' work is in <code>SQLExec.cpp</code> labeled with <code>FIXME</code>.
-## Unit Tests
-There are some tests for SlottedPage and HeapTable. They can be invoked from the <code>SQL</code> prompt:
-```sql
-SQL> test
-```
-Be aware that failed tests may leave garbage Berkeley DB files lingering in your data directory. If you don't care about any data in there, you are advised to just delete them all after a failed test.
-```sh
-$ rm -f data/*
-```
+## Milestone 2:
 
-## Valgrind (Linux)
-To run valgrind (files must be compiled with <code>-ggdb</code>):
-```sh
-$ valgrind --leak-check=full --suppressions=valgrind.supp ./sql5300 data
-```
-rm -f ~/cpsc5300/data/*
-```
+The storage engine is made up of three layers: DbBlock, DbFile, and DbRelation.
+Created a program for the implementations for the Heap Storage Engine's version of each: SlottedPage, HeapFile, and HeapTable.
+
+Hand off:
+The video is added in a zip file in the project
+
+---
+
+_Sprint Otoño_
+
+Team:
+- Ana Mendes
+- Keerthana Thonupunuri
+
 ## Milestone 3:
 
 Rudimentary implementation of a Schema Storage that support the following commands:
