@@ -150,10 +150,10 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement)
                 column_definition(col, column_name, column_attribute);
                 new_columns_row["column_name"] = Value(column_name);
                 if (column_attribute.get_data_type() == ColumnAttribute::DataType::TEXT) {
-                    new_columns_row["data_type"] = Value("TEXT"); //enum to str error?
+                    new_columns_row["data_type"] = Value("TEXT");
                 }
                 else if (column_attribute.get_data_type() == ColumnAttribute::DataType::INT) {
-                    new_columns_row["data_type"] = Value("INT"); //enum to str error?
+                    new_columns_row["data_type"] = Value("INT");
                 }
 
                 Handle columns_handle = col_table->insert(&new_columns_row); //calls dbrelation insert?
@@ -174,8 +174,7 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement)
         //cout << "exc2" << endl; need to specify failure type
         message = exc.what();
     }
-    //delete stuff
-    //return message
+
     return new QueryResult(message);
 }
 
