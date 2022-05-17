@@ -23,16 +23,6 @@ $ ./sql5300 ~/cpsc5300/data
 The storage engine is made up of three layers: DbBlock, DbFile, and DbRelation.
 Created a program for the implementations for the Heap Storage Engine's version of each: SlottedPage, HeapFile, and HeapTable.
 
-Hand off:
-The video is added in a zip file in the project
-
----
-
-_Sprint Otoño_
-
-Team:
-- Ana Mendes
-- Keerthana Thonupunuri
 
 ## Milestone 3:
 
