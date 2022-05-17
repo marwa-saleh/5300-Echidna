@@ -179,15 +179,56 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement)
 // helper method
 QueryResult *SQLExec::create_index(const CreateStatement *statement)
 {
-    Identifier table_name = statement->tableName;
+    // parser's result
+    // Identifier table_name = statement->tableName;
+    std::string table_name(statement->tableName);
     Identifier index_name = statement->indexName;
     Identifier index_type = statement->indexType;
     std::vector<char*>* index_columns = statement->indexColumns;
+
+    // check if the table exists
+    try {
+        tables->get_table(table_name);
+    } catch (...) {
+        return new QueryResult("Error: table " + table_name + " does not exist");
+    }
+
+    // add new index to _indices
+    ColumnNames column_names;
+    ColumnAttributes column_attributes;
+    // tables->get_columns(table_name, column_names, column_attributes); // FIXME: DOES NOT COMPILE
+    ValueDict row;
+    row["table_name"] = Value(table_name);
+    row["index_name"] = Value(index_name);
+    row["index_type"] = Value(index_type);
+    row["is_unique"] = index_type == "BTREE" ? Value(1) : Value(0);
+
+    Handles index_handles;
+    int seq = 1;
+
+    // insert a row for each colum in index key into _indices
+    // use static reference to _indices
+
+    for (auto column: *index_columns) {
+        // TODO check that all the index coumns exits in the table
+        row["column_name"] = Value(column);
+        row["seq_in_index"] = Value(seq++);
+
+        try {
+            index_handles.push_back(indices->insert(&row));
+        } catch (DbRelationError &exc) {
+            // roll-back inserts
+
+        }
+    }
+
+    // call get_index to get a reference to the new index and then invoke the drop method on it
 
     return new QueryResult("not implemented");
 }
 
 // DROP ...
+// TODO before dropping the table, drop each index on the table
 QueryResult *SQLExec::drop(const DropStatement *statement) {
     switch (statement->type) {
         case DropStatement::kTable :
@@ -272,10 +313,15 @@ QueryResult *SQLExec::show_columns(const ShowStatement *statement) {
 }
 
 QueryResult *SQLExec::show_index(const ShowStatement *statement) {
+    // do a query (using the select method) on _indices for the given table name
      return new QueryResult("show index not implemented"); // FIXME
 }
 
 QueryResult *SQLExec::drop_index(const DropStatement *statement) {
+    // call get_index to get a reference to the index and then invoke the drop method on it
+
+    // remove all the rows from _indices for this index
+
     return new QueryResult("drop index not implemented");  // FIXME
 }
 
