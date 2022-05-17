@@ -9,7 +9,8 @@ using namespace std;
 using namespace hsql;
 
 // define static data
-Tables *SQLExec::tables = nullptr;
+Tables *SQLExec::tables = nullptr; // milestone3
+Indices *SQLExec::indices = nullptr; // milestone 4
 
 // make query result be printable
 ostream &operator<<(ostream &out, const QueryResult &qres) {
@@ -46,7 +47,6 @@ ostream &operator<<(ostream &out, const QueryResult &qres) {
 }
 
 QueryResult::~QueryResult() {
-    // FIXME
     delete column_names;
     delete column_attributes;
     delete rows;
@@ -55,22 +55,16 @@ QueryResult::~QueryResult() {
 
 
 QueryResult *SQLExec::execute(const SQLStatement *statement) {
-    // FIXME: initialize _tables table, if not yet present
+    // initialize _tables table, if not yet present
     if (tables == nullptr) {
         initialize_schema_tables();
         tables = new Tables();
-        // tables->open();
-        // DbRelation *col_table = &tables->get_table(Columns::TABLE_NAME);
-        // col_table->open();
     }
-    // if (SQLExec::tables == nullptr)
-    // {
-    //     SQLExec::tables = new Tables();
-    // }
-    // if (SQLExec::indices == nullptr)
-    // {
-    //     SQLExec::indices = new Indices();
-    // }
+    // initialize _indices, if not yet present
+    if (SQLExec::indices == nullptr)
+    {
+        SQLExec::indices = new Indices();
+    }
 
     try {
         switch (statement->type()) {
@@ -109,8 +103,8 @@ QueryResult *SQLExec::create(const CreateStatement *statement) {
     {
         case CreateStatement::CreateType::kTable:
             return create_table(statement);
-        // case CreateStatement::CreateType::kIndex:
-        //     return create_index(statement);
+        case CreateStatement::CreateType::kIndex:
+            return create_index(statement);
         default:
             return new QueryResult("not implemented");
     }
@@ -168,11 +162,15 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement)
             }
             //cout << exc.what() << endl; need to specify failure type
             message = "Failure";
+            throw;
         }
     }
     catch (DbRelationError &exc) {
         //cout << "exc2" << endl; need to specify failure type
+
         message = exc.what();
+        // throw this error
+        throw;
     }
 
     return new QueryResult(message);
@@ -181,7 +179,10 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement)
 // helper method
 QueryResult *SQLExec::create_index(const CreateStatement *statement)
 {
-
+    Identifier table_name = statement->tableName;
+    Identifier index_name = statement->indexName;
+    Identifier index_type = statement->indexType;
+    std::vector<char*>* index_columns = statement->indexColumns;
 
     return new QueryResult("not implemented");
 }
