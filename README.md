@@ -3,6 +3,7 @@
 _Sprint Verano_
 
 Sprint 1 Team:
+Meryll & Darin
 
 Sprint 2 Team:
 Thomas Bakken
