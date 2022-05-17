@@ -1,9 +1,14 @@
 /**
  * @file SQLExec.cpp - implementation of SQLExec class
- * @author Kevin Lundeen
+ * @author Kevin Lundeen, Thomas Bakken, Fangsheng Xu
  * @see "Seattle University, CPSC5300, Spring 2022"
  */
 #include "SQLExec.h"
+#include "SQLParser.h"
+#include "sql_parser.h"
+#include "schema_tables.h"
+#include <vector>
+#include <string>
 
 using namespace std;
 using namespace hsql;
@@ -22,7 +27,7 @@ ostream &operator<<(ostream &out, const QueryResult &qres) {
         out << endl;
         for (auto const &row: *qres.rows) {
             for (auto const &column_name: *qres.column_names) {
-                Value value = row->at(column_name);
+                Value value = row.at(column_name);
                 switch (value.data_type) {
                     case ColumnAttribute::INT:
                         out << value.n;
@@ -125,6 +130,7 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement)
         default :
             throw SQLExecError(string("Only create table implemented"));
     }
+    cout << "hey3" << endl;
     //initialize message
     string message = "Success";
     //table name
