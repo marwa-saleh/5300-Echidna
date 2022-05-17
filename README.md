@@ -3,11 +3,10 @@
 _Sprint Verano_
 
 Sprint 1 Team:
-Meryll & Darin
+Meryll& Darin
 
 Sprint 2 Team:
-Thomas Bakken
-Fangsheng Xu
+Thomas Bakken& Fangsheng Xu
 
 ## Milestone 1:
 
