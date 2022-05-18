@@ -1,6 +1,6 @@
 /**
  * @file SQLExec.cpp - implementation of SQLExec class
- * @author Kevin Lundeen
+ * @author Thomas& Fangsheng
  * @see "Seattle University, CPSC5300, Spring 2022"
  */
 #include "SQLExec.h"
@@ -46,6 +46,7 @@ ostream &operator<<(ostream &out, const QueryResult &qres) {
     return out;
 }
 
+// deletor
 QueryResult::~QueryResult() {
     delete column_names;
     delete column_attributes;
@@ -53,7 +54,7 @@ QueryResult::~QueryResult() {
     message.clear();
 }
 
-
+// execute sql statement
 QueryResult *SQLExec::execute(const SQLStatement *statement) {
     // initialize _tables table, if not yet present
     if (tables == nullptr) {
@@ -81,6 +82,7 @@ QueryResult *SQLExec::execute(const SQLStatement *statement) {
     }
 }
 
+// set column attribute
 void SQLExec::column_definition(const ColumnDefinition *col, Identifier &column_name, ColumnAttribute &column_attribute) {
     column_name = col->name;
     //convert from hsql::ColumnType::DataType to ColumnDefinition::DataType
@@ -97,6 +99,7 @@ void SQLExec::column_definition(const ColumnDefinition *col, Identifier &column_
     }
 }
 
+// handle create statement
 QueryResult *SQLExec::create(const CreateStatement *statement) {
     switch (statement->type)
     {
@@ -109,7 +112,7 @@ QueryResult *SQLExec::create(const CreateStatement *statement) {
     }
 }
 
-// helper method
+// helper method: create table
 QueryResult *SQLExec::create_table(const CreateStatement *statement)
 {
     //initialize message
@@ -132,7 +135,7 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement)
             ColumnAttribute column_attribute;
             column_definition(col, column_name, column_attribute);
             // row tablename is already set
-            row["column_name"] = Value(column_name); 
+            row["column_name"] = Value(column_name);
             if (column_attribute.get_data_type() == ColumnAttribute::DataType::TEXT) {
                 row["data_type"] = Value("TEXT");
             }
@@ -157,7 +160,7 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement)
     return new QueryResult(message);
 }
 
-// helper method
+// helper method: create index
 QueryResult *SQLExec::create_index(const CreateStatement *statement)
 {
     // create and calidate 6 columns
@@ -223,7 +226,7 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement)
     return new QueryResult("created index " + index_name);
 }
 
-// DROP ...
+// handle drop statement
 QueryResult *SQLExec::drop(const DropStatement *statement) {
     switch (statement->type)
     {
@@ -236,6 +239,7 @@ QueryResult *SQLExec::drop(const DropStatement *statement) {
     }
 }
 
+// handle drop table
 QueryResult *SQLExec::drop_table(const DropStatement *statement) {
     Identifier table_name = statement->name;
     ValueDict where;
@@ -250,7 +254,7 @@ QueryResult *SQLExec::drop_table(const DropStatement *statement) {
 
     //delete row from tables
     tables->del(tables_handle->front()); //deletes table from cache before deleting handle from table
-    
+
     //delete rows from columns
     DbRelation *col_tables = &tables->get_table(Columns::TABLE_NAME);
     Handles columns_handles = *col_tables->select(&where);
@@ -273,6 +277,7 @@ QueryResult *SQLExec::drop_table(const DropStatement *statement) {
     return new QueryResult(string("drop table " + table_name));
 }
 
+// drop index
 QueryResult *SQLExec::drop_index(const DropStatement *statement) {
     Identifier table_name = statement->name;
     Identifier index_name = statement->indexName;
@@ -302,6 +307,7 @@ QueryResult *SQLExec::drop_index(const DropStatement *statement) {
     return new QueryResult(std::string("dropped index ") + index_name);
 }
 
+// handle show statement
 QueryResult *SQLExec::show(const ShowStatement *statement) {
     switch (statement->type)
     {
@@ -316,6 +322,7 @@ QueryResult *SQLExec::show(const ShowStatement *statement) {
     }
 }
 
+// handle show tables
 QueryResult *SQLExec::show_tables() {
     Handles *handles = tables->select();
     ValueDicts *rows = new ValueDicts();
@@ -338,7 +345,7 @@ QueryResult *SQLExec::show_tables() {
     return new QueryResult(column_names, column_attributes, rows, message);
 }
 
-
+// show columns
 QueryResult *SQLExec::show_columns(const ShowStatement *statement) {
     Identifier table_name = statement->tableName;
 
@@ -365,7 +372,7 @@ QueryResult *SQLExec::show_columns(const ShowStatement *statement) {
 // shows all indices for a given table
 QueryResult *SQLExec::show_index(const ShowStatement *statement) {
     Identifier table_name = statement->tableName;
-    
+
     ColumnNames *column_names = new ColumnNames(); // QueryResult arg 1
     ColumnAttributes *column_attributes = new ColumnAttributes(); // QueryResult arg 2
     tables->get_columns(Indices::TABLE_NAME, *column_names, *column_attributes);
