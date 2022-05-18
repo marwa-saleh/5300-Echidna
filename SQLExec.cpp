@@ -122,8 +122,7 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement)
     row["table_name"] = Value(table_name);
 
     Handle tables_handle = tables->insert(&row); // insert the new _tables row
-    DbRelation *table = &tables->get_table(table_name); //creates the new table if
-    table->create_if_not_exists(); // could this be create() ?
+
     DbRelation *col_table = &tables->get_table(Columns::TABLE_NAME);
     Handles columns_handles;
 
@@ -154,7 +153,8 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement)
         }
         throw exc;
     }
-
+    DbRelation *table = &tables->get_table(table_name); //creates the new table if
+    table->create_if_not_exists(); // could this be create() ?
     return new QueryResult(message);
 }
 
@@ -163,14 +163,21 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement)
 {
     // create and calidate 6 columns
     Identifier table_name = statement->tableName; //column 2
+
+    ColumnNames *column_names = new ColumnNames();
+    ColumnAttributes *column_attributes = new ColumnAttributes();
+    tables->get_columns(table_name, *column_names, *column_attributes);
+    delete column_attributes; //only need column_names to validate
+
     Identifier index_name = statement->indexName; //column 1
     Identifier index_type = statement->indexType; //column 5
+
     bool is_unique; //set column 6
     if (index_type == "BTREE") {
-        bool is_unique = true;
+        is_unique = true;
     }
     else if (index_type == "HASH") {
-        bool is_unique = false;
+        is_unique = false;
     }
     else {
         throw SQLExecError("Index type not implemented");
@@ -187,6 +194,16 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement)
     try {
         for (auto const &col : *statement->indexColumns) {
             Identifier column_name = string(col); //column 3
+            bool valid = false;
+            for (Identifier name : *column_names) {
+                if (column_name == name) {
+                    valid = true;
+                    break;
+                }
+            }
+            if (!valid) {
+                throw (new SQLExecError("Column not in Table"));
+            }
             seq_in_index++; //column 4
             //set 2 variable values
             row["column_name"] = Value(column_name);
@@ -245,20 +262,22 @@ QueryResult *SQLExec::drop_index(const DropStatement *statement) {
     Identifier table_name = statement->name;
     Identifier index_name = statement->indexName;
 
-    ValueDict where;
+    ValueDict where = *(new ValueDict());
     where["table_name"] = Value(table_name);
     where["index_name"] = Value(index_name);
 
     // call get_index to get a reference to the index
     // and then invoke the drop method on it
-    DbIndex &index = indices->get_index(table_name, index_name);
-
+    //DbIndex *index = &
+    cout << "1111" << endl;
+    indices->get_index(table_name, index_name).drop();
+    cout << "2222" << endl;
     // remove all the rows from _indices for this index
     Handles *handles = indices->select(&where);
-    for (auto const &handle: *handles){
+    for (Handle handle : *handles) {
         indices->del(handle);
     }
-    index.drop();
+    //delete index; //drop is undefined for DummyIndex
 
     return new QueryResult(std::string("dropped index ") + index_name);
 }
@@ -282,7 +301,7 @@ QueryResult *SQLExec::show_tables() {
     ValueDicts *rows = new ValueDicts();
 
     ColumnNames *column_names = new ColumnNames;
-    for (const Handle &handle: *handles) {
+    for (Handle &handle: *handles) {
         ValueDict* row = tables->project(handle, column_names);
         if (((*row)["table_name"]) != Value(Tables::TABLE_NAME)
          && ((*row)["table_name"]) != Value(Columns::TABLE_NAME)
@@ -326,7 +345,6 @@ QueryResult *SQLExec::show_columns(const ShowStatement *statement) {
 // shows all indices for a given table
 QueryResult *SQLExec::show_index(const ShowStatement *statement) {
     Identifier table_name = statement->tableName;
-    cout << table_name << endl;
     
     ColumnNames *column_names = new ColumnNames(); // QueryResult arg 1
     ColumnAttributes *column_attributes = new ColumnAttributes(); // QueryResult arg 2
