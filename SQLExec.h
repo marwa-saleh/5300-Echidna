@@ -81,6 +81,9 @@ protected:
 
     static QueryResult *drop(const hsql::DropStatement *statement);
 
+    // added by Thomas
+    static QueryResult *drop_table(const hsql::DropStatement*);
+
     static QueryResult *show(const hsql::ShowStatement *statement);
 
     static QueryResult *show_tables();
