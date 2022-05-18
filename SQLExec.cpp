@@ -202,7 +202,7 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement)
                 }
             }
             if (!valid) {
-                throw (new SQLExecError("Column not in Table"));
+                throw DbRelationError("Column not in Table");
             }
             seq_in_index++; //column 4
             //set 2 variable values
@@ -248,12 +248,25 @@ QueryResult *SQLExec::drop_table(const DropStatement *statement) {
     where["table_name"] = Value(table_name);
     Handles *tables_handle = tables->select(&where);
     tables->del(tables_handle->front()); //deletes table from cache before deleting handle from table
+    
     //delete rows from columns
-
     DbRelation *col_tables = &tables->get_table(Columns::TABLE_NAME);
     Handles columns_handles = *col_tables->select(&where);
     for (Handle columns_handle: columns_handles) {
         col_tables->del(columns_handle);
+    }
+
+    //delete indices on table
+    IndexNames index_names = indices->get_index_names(table_name);
+    for (Identifier index_name : index_names) {
+        //drop index
+        indices->get_index(table_name, index_name).drop();
+        //delete rows in _indices
+        where["index_name"] = Value(index_name);
+        Handles *handles = indices->select(&where);
+        for (Handle handle : *handles) {
+            indices->del(handle);
+        }
     }
     return new QueryResult(string("drop table " + table_name));
 }
