@@ -1,12 +1,18 @@
 # 5300-Echidna
 
-_Sprint Verano_
+_Sprint Otoño_
+
+Sprint 2 Team:
+Thomas Bakken& Fangsheng Xu
 
 Sprint 1 Team:
 Meryll& Darin
 
-Sprint 2 Team:
-Thomas Bakken& Fangsheng Xu
+## Comments from Sprint Verano
+
+Milestone3 and 4 are fully functional to the test cases provided. Best assumptions were made to handle error cases with no functionality provided. There may be some rem The team was mindful of memory leaks, being careful to delete pointers after use. The code base is from github repository klundeen/5300-Instructor. Errors remaining in the sql parser provided for Milestone4 were fixed. SQLExec was written by the sprint Verano Team. 
+
+Video Link: https://www.youtube.com/watch?v=ZrI10mtJ7NY (sorry the video is blurry, not sure how to up the resolution in my screen recorder... hope the audio walkthrough still helps. 
 
 ## Milestone 1:
 
