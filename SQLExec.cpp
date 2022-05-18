@@ -57,7 +57,6 @@ QueryResult::~QueryResult() {
 QueryResult *SQLExec::execute(const SQLStatement *statement) {
     // initialize _tables table, if not yet present
     if (tables == nullptr) {
-        initialize_schema_tables();
         tables = new Tables();
     }
     // initialize _indices, if not yet present
@@ -239,13 +238,17 @@ QueryResult *SQLExec::drop(const DropStatement *statement) {
 
 QueryResult *SQLExec::drop_table(const DropStatement *statement) {
     Identifier table_name = statement->name;
+    ValueDict where;
+    where["table_name"] = Value(table_name);
+    Handles *tables_handle = tables->select(&where);
+    //make sure table_name exists
+    if (tables_handle->size() == 0) {
+        throw DbRelationError("Table doesn't exist");
+    }
     //drop the table
     tables->get_table(table_name).drop(); //get_table creates a new table if it doesn't exist
 
     //delete row from tables
-    ValueDict where;
-    where["table_name"] = Value(table_name);
-    Handles *tables_handle = tables->select(&where);
     tables->del(tables_handle->front()); //deletes table from cache before deleting handle from table
     
     //delete rows from columns
@@ -274,15 +277,23 @@ QueryResult *SQLExec::drop_index(const DropStatement *statement) {
     Identifier table_name = statement->name;
     Identifier index_name = statement->indexName;
 
-    ValueDict where = *(new ValueDict());
+    ValueDict where;
     where["table_name"] = Value(table_name);
+    Handles *tables_handle = tables->select(&where);
+    //make sure table_name exists
+    if (tables_handle->size() == 0) {
+        throw DbRelationError("Table doesn't exist");
+    }
     where["index_name"] = Value(index_name);
+    Handles *handles = indices->select(&where);
 
+    if (tables_handle->size() == 0) {
+        throw DbRelationError("Index doesn't exist");
+    }
     // call get_index to get a reference to the index
     // and then invoke the drop method on it
     indices->get_index(table_name, index_name).drop();
     // remove all the rows from _indices for this index
-    Handles *handles = indices->select(&where);
     for (Handle handle : *handles) {
         indices->del(handle);
     }
