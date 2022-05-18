@@ -268,10 +268,7 @@ QueryResult *SQLExec::drop_index(const DropStatement *statement) {
 
     // call get_index to get a reference to the index
     // and then invoke the drop method on it
-    //DbIndex *index = &
-    cout << "1111" << endl;
     indices->get_index(table_name, index_name).drop();
-    cout << "2222" << endl;
     // remove all the rows from _indices for this index
     Handles *handles = indices->select(&where);
     for (Handle handle : *handles) {
