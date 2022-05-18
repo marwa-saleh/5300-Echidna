@@ -113,64 +113,46 @@ QueryResult *SQLExec::create(const CreateStatement *statement) {
 // helper method
 QueryResult *SQLExec::create_table(const CreateStatement *statement)
 {
-    switch (statement->type) {
-        case CreateStatement::kTable :
-            break; //do the stuff below, will break out later with create index
-        default :
-            throw SQLExecError(string("Only create table implemented"));
-    }
     //initialize message
     string message = "Success";
     //table name
     Identifier table_name = statement->tableName;
     //insert new table row to _tables
-    ValueDict new_tables_row;
-    new_tables_row["table_name"] = Value(table_name);
+    ValueDict row;
+    row["table_name"] = Value(table_name);
+
+    Handle tables_handle = tables->insert(&row); // insert the new _tables row
+    DbRelation *table = &tables->get_table(table_name); //creates the new table if
+    table->create_if_not_exists(); // could this be create() ?
+    DbRelation *col_table = &tables->get_table(Columns::TABLE_NAME);
+    Handles columns_handles;
 
     try {
-        Handle tables_handle = tables->insert(&new_tables_row);
-        DbRelation *table = &tables->get_table(table_name); //creates the new table if
-        table->create_if_not_exists();
-        DbRelation *col_table = &tables->get_table(Columns::TABLE_NAME);
-        Handles columns_handles;
-
-        try {
-            //get column definitions (name and attributes)
-            ValueDict new_columns_row;
-            new_columns_row["table_name"] = Value(table_name);
-            for (ColumnDefinition *col: *statement->columns) {
-                Identifier column_name;
-                ColumnAttribute column_attribute;
-                column_definition(col, column_name, column_attribute);
-                new_columns_row["column_name"] = Value(column_name);
-                if (column_attribute.get_data_type() == ColumnAttribute::DataType::TEXT) {
-                    new_columns_row["data_type"] = Value("TEXT");
-                }
-                else if (column_attribute.get_data_type() == ColumnAttribute::DataType::INT) {
-                    new_columns_row["data_type"] = Value("INT");
-                }
-
-                Handle columns_handle = col_table->insert(&new_columns_row); //calls dbrelation insert?
-                columns_handles.push_back(columns_handle);
+        //get column definitions (name and attributes) to insert _columns rows
+        for (ColumnDefinition *col: *statement->columns) {
+            Identifier column_name;
+            ColumnAttribute column_attribute;
+            column_definition(col, column_name, column_attribute);
+            // row tablename is already set
+            row["column_name"] = Value(column_name); 
+            if (column_attribute.get_data_type() == ColumnAttribute::DataType::TEXT) {
+                row["data_type"] = Value("TEXT");
             }
-        }
-        catch (DbRelationError &exc) {
-            //rollback changes in _tables and _columns
-            tables->del(tables_handle);
-            for (Handle handle: columns_handles) {
-                col_table->del(handle);
+            else if (column_attribute.get_data_type() == ColumnAttribute::DataType::INT) {
+                row["data_type"] = Value("INT");
             }
-            //cout << exc.what() << endl; need to specify failure type
-            message = "Failure";
-            throw;
+
+            Handle columns_handle = col_table->insert(&row); //calls dbrelation insert?
+            columns_handles.push_back(columns_handle);
         }
     }
     catch (DbRelationError &exc) {
-        //cout << "exc2" << endl; need to specify failure type
-
-        message = exc.what();
-        // throw this error
-        throw;
+        //rollback changes in _tables and _columns
+        tables->del(tables_handle);
+        for (Handle handle: columns_handles) {
+            col_table->del(handle);
+        }
+        throw exc;
     }
 
     return new QueryResult(message);
@@ -179,54 +161,50 @@ QueryResult *SQLExec::create_table(const CreateStatement *statement)
 // helper method
 QueryResult *SQLExec::create_index(const CreateStatement *statement)
 {
-    // parser's result
-    // Identifier table_name = statement->tableName;
-    std::string table_name(statement->tableName);
-    Identifier index_name = statement->indexName;
-    Identifier index_type = statement->indexType;
-    std::vector<char*>* index_columns = statement->indexColumns;
-
-    // check if the table exists
-    try {
-        tables->get_table(table_name);
-    } catch (...) {
-        return new QueryResult("Error: table " + table_name + " does not exist");
+    // create and calidate 6 columns
+    Identifier table_name = statement->tableName; //column 2
+    Identifier index_name = statement->indexName; //column 1
+    Identifier index_type = statement->indexType; //column 5
+    bool is_unique; //set column 6
+    if (index_type == "BTREE") {
+        bool is_unique = true;
+    }
+    else if (index_type == "HASH") {
+        bool is_unique = false;
+    }
+    else {
+        throw SQLExecError("Index type not implemented");
     }
 
-    // add new index to _indices
-    ColumnNames column_names;
-    ColumnAttributes column_attributes;
-    // tables->get_columns(table_name, column_names, column_attributes); // FIXME: DOES NOT COMPILE
+    int seq_in_index = 0;
+    Handles handles; //to store in case of rollback
     ValueDict row;
+    //set row values
     row["table_name"] = Value(table_name);
     row["index_name"] = Value(index_name);
     row["index_type"] = Value(index_type);
-    row["is_unique"] = index_type == "BTREE" ? Value(1) : Value(0);
+    row["is_unique"] = Value(is_unique);
+    try {
+        for (auto const &col : *statement->indexColumns) {
+            Identifier column_name = string(col); //column 3
+            seq_in_index++; //column 4
+            //set 2 variable values
+            row["column_name"] = Value(column_name);
+            row["seq_in_index"] = Value(seq_in_index);
 
-    Handles index_handles;
-    int seq = 1;
-
-    // insert a row for each colum in index key into _indices
-    // use static reference to _indices
-
-    for (auto column: *index_columns) {
-        // TODO check that all the index coumns exits in the table
-        row["column_name"] = Value(column);
-        row["seq_in_index"] = Value(seq++);
-
-        try {
-            index_handles.push_back(indices->insert(&row));
-        } catch (DbRelationError &exc) {
-            // roll-back inserts
-
+            Handle handle = indices->insert(&row);
+            handles.push_back(handle);
         }
     }
-
-    // call get_index to get a reference to the new index and then invoke the create method on it
-    DbIndex &index = SQLExec::indices->get_index(table_name, index_name);
-    index.create();
+    catch (DbRelationError &exc) {
+        for (Handle handle: handles) {
+            indices->del(handle);
+        }
+        throw exc;
+    }
+    DbIndex *new_index = &indices->get_index(table_name, index_name);
+    new_index->create();
     return new QueryResult("created index " + index_name);
-    // return new QueryResult("not implemented");
 }
 
 // DROP ...
@@ -347,40 +325,23 @@ QueryResult *SQLExec::show_columns(const ShowStatement *statement) {
 
 // shows all indices for a given table
 QueryResult *SQLExec::show_index(const ShowStatement *statement) {
-    ColumnNames *column_names = new ColumnNames;
-    ColumnAttributes *column_attributes = new ColumnAttributes;
-
-    column_names->push_back("table_name");
-    column_attributes->push_back(ColumnAttribute(ColumnAttribute::TEXT));
-
-    column_names->push_back("index_name");
-    column_attributes->push_back(ColumnAttribute(ColumnAttribute::TEXT));
-
-    column_names->push_back("column_name");
-    column_attributes->push_back(ColumnAttribute(ColumnAttribute::TEXT));
-
-    column_names->push_back("seq_in_index");
-    column_attributes->push_back(ColumnAttribute(ColumnAttribute::INT));
-
-    column_names->push_back("index_type");
-    column_attributes->push_back(ColumnAttribute(ColumnAttribute::TEXT));
-
-    column_names->push_back("is_unique");
-    column_attributes->push_back(ColumnAttribute(ColumnAttribute::BOOLEAN));
-
-    ValueDict where;
-    where["table_name"] = Value(std::string(statement->tableName));
-
-    Handles* handles = SQLExec::indices->select(&where);
-    int count = handles->size();
+    Identifier table_name = statement->tableName;
+    cout << table_name << endl;
+    
+    ColumnNames *column_names = new ColumnNames(); // QueryResult arg 1
+    ColumnAttributes *column_attributes = new ColumnAttributes(); // QueryResult arg 2
+    tables->get_columns(Indices::TABLE_NAME, *column_names, *column_attributes);
 
     ValueDicts *rows = new ValueDicts();
-    for (auto const &handle: *handles) {
-        ValueDict *row = SQLExec::indices->project(handle, column_names);
-        rows->push_back(row);
+    ValueDict where = *(new ValueDict());
+
+    where["table_name"] = Value(table_name);
+    Handles *handles = indices->select(&where);
+
+    for (Handle handle : *handles) {
+        rows->push_back(indices->project(handle));
     }
 
-    delete handles;
-    return new QueryResult(column_names, column_attributes, rows,
-                            "succesfully returned " + to_string(count) + " rows");
+    std::string message = "Successfully returned " + to_string(handles->size()) + " rows";
+    return new QueryResult(column_names, column_attributes, rows, message);
 }
