@@ -237,7 +237,6 @@ QueryResult *SQLExec::drop(const DropStatement *statement) {
     }
 }
 
-// TODO before dropping the table, drop each index on the table
 QueryResult *SQLExec::drop_table(const DropStatement *statement) {
     Identifier table_name = statement->name;
     //drop the table
