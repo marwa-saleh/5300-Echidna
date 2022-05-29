@@ -4,6 +4,7 @@
  * @see "Seattle University, CPSC5300, Spring 2022"
  */
 #include "SQLExec.h"
+#include "EvalPlan.h"
 
 using namespace std;
 using namespace hsql;
@@ -97,7 +98,47 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
 }
 
 QueryResult *SQLExec::select(const SelectStatement *statement) {
-    return new QueryResult("SELECT statement not yet implemented");  // FIXME
+    Identifier table_name = statement->fromTable->name;
+    DbRelation& table = SQLExec::tables->get_table(table_name);
+
+    ColumnNames* column_names = new ColumnNames;
+    for (auto const  &expr : *statement->selectList) {
+        if (expr->type == kExprStar) {
+            for (auto const column : table.get_column_names()) {
+                column_names->push_back(column);
+            }
+        }
+        else if(expr->type == kExprColumnRef){
+            column_names->push_back(expr->name);
+        }
+        else {
+            return new QueryResult("Invalid select expression");
+        }
+    }
+    // start base of plan at a TableScan
+    EvalPlan *plan = new EvalPlan(table);
+
+    //enclose that in a select if we have a where clause
+    if (statement->whereClause != nullptr) {
+        plan = new EvalPlan(get_where_conjunction(statement->whereClause), plan);
+    }
+
+    //project
+    plan = new EvalPlan(column_names, plan);
+
+    //optimize the plan and evaluate the optimized plan
+    EvalPlan* optimized = plan->optimize();
+    ValueDicts* rows = optimized->evaluate();
+
+    ColumnAttributes* column_attributes = table.get_column_attributes(*column_names);
+    return new QueryResult(column_names, column_attributes, rows, "successufly returned " + to_string(rows->size()) + " rows");
+}
+
+ValueDict *SQLExec::get_where_conjunction(const Expr *parse_where) {
+    ValueDict* where_list = new ValueDict;
+
+
+    return where_list;
 }
 
 void
