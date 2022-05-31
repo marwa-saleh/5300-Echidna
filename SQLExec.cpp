@@ -90,7 +90,56 @@ QueryResult *SQLExec::execute(const SQLStatement *statement) {
 }
 
 QueryResult *SQLExec::insert(const InsertStatement *statement) {
-    return new QueryResult("INSERT statement not yet implemented");  // FIXME
+    // getting the table name
+    Identifier table_name = statement->tableName;
+    // getting the table with the table name
+    DbRelation& table = SQLExec::tables->get_table(table_name);
+    ValueDict row;
+    Handle insertHandle;
+    ColumnNames column_names;
+    ColumnAttributes column_attributes;
+    unsigned int index = 0;
+
+    //get column info
+    if(statement->columns != nullptr){
+        for (auto const col : *statement->columns){
+            column_names.push_back(col);
+        }
+    }
+    else {
+        for (auto const col: table.get_column_names()){
+            column_names.push_back(col);
+        }
+    }
+
+    for (auto const& col : *statement->values) {
+        if col->type == kExprLiteralString{
+                    row[column_names[index]] = Value(col->name);
+                    index++;
+            }
+        else if col->type == kExprLiteralInt{
+                    row[column_names[index]] = Value(col->ival);
+                    index++;
+            }
+        else {
+            //Don't add to table
+            throw SQLExecError("Insert can only handle INT or Text");
+        }
+    }
+
+    // adding inset to a handle
+    insertHandle = table.insert(&row);
+
+    //getting index names on a table
+    IndexNames index_names;
+    index_names = SQLExec::indices->get_index_names(table_name);
+    for(Identifier index_name : index_names){
+        DbIndex& index = SQLExec::indices->get_index(table_name, index_name);
+        index.insert(insertHandle);
+    }
+    int index_size = index_names.size();
+    return new QueryResult("Successfully inserted 1 row into "
+                           + table_name + " and " + to_string(index_size) + " indices");
 }
 
 QueryResult *SQLExec::del(const DeleteStatement *statement) {
