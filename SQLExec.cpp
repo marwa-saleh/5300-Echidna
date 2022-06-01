@@ -113,11 +113,11 @@ QueryResult *SQLExec::insert(const InsertStatement *statement) {
     }
 
     for (auto const& col : *statement->values) {
-        if col->type == kExprLiteralString{
+        if (col->type == kExprLiteralString){
                     row[column_names[index]] = Value(col->name);
                     index++;
             }
-        else if col->type == kExprLiteralInt{
+        else if (col->type == kExprLiteralInt){
                     row[column_names[index]] = Value(col->ival);
                     index++;
             }
