@@ -59,6 +59,45 @@ QueryResult::~QueryResult() {
     }
 }
 
+ValueDict* SQLExec::get_where_conjunction(const hsql::Expr *expr, const ColumnNames *col_names){
+    ValueDict* rows = new ValueDict;
+    if (expr->type == kExprOperator){
+        if(expr->opType == Expr::AND){
+            ValueDict* sub = get_where_conjunction(expr->expr, col_names); //recursively get left
+            if (sub != nullptr){
+                rows->insert(sub->begin(), sub->end());
+            }
+            sub = get_where_conjunction(expr->expr2, col_names);
+            rows->insert(sub->begin(), sub->end());
+        }
+        else if(expr->opType == Expr::SIMPLE_OP){
+            if(expr->opChar == '='){//handles equality in statement
+                Identifier col = expr->expr->name;
+                if(find(col_names->begin(), col_names->end(), col) == col_names->end()){//look for column
+                    throw DbRelationError("unknown column '" + col + "'");
+                }
+                if (expr->expr2->type == kExprLiteralString){
+                    rows->insert(pair<Identifier, Value>(col, Value(expr->expr2->name)));
+                }
+                else if(expr->expr2->type == kExprLiteralInt){
+                    rows->insert(pair<Identifier, Value>(col, Value(expr->expr2->ival)));
+                }
+                else{
+                    throw DbRelationError("Not a valid data type");
+                }
+            }
+            else {
+                throw DbRelationError("currently supports equality predicates only");
+            }
+        }
+        else {
+            throw DbRelationError("Supports AND conjunctions only");
+        }
+        return rows;
+    } else {
+        throw DbRelationError("Operator is INVALID!!    ");
+    }
+}
 
 QueryResult *SQLExec::execute(const SQLStatement *statement) {
     // initialize _tables table, if not yet present
@@ -142,8 +181,62 @@ QueryResult *SQLExec::insert(const InsertStatement *statement) {
                            + table_name + " and " + to_string(index_size) + " indices");
 }
 
+/**
+ * del method to delete rows from the a table
+ * USAGE :: delete from foo where id=1
+ * @param statement
+ * @return Query result
+ */
 QueryResult *SQLExec::del(const DeleteStatement *statement) {
-    return new QueryResult("DELETE statement not yet implemented");  // FIXME
+    //getting the tablename from the statement
+    Identifier table_name = statement->tableName;
+    //fetching the table with the given table name in the query
+    DbRelation& table = SQLExec::tables->get_table(table_name);
+    ColumnNames col_names;
+
+    for (auto const col: table.get_column_names()){
+        col_names.push_back(col);
+    }
+
+    //making the evaluation plan
+    EvalPlan *plan = new EvalPlan(table);
+
+    ValueDict* where = new ValueDict;
+    if (statement->expr != NULL){
+        try{
+            where = get_where_conjunction(statement->expr, &col_names);
+        }
+        catch (exception &e){
+            throw;
+        }
+        // defining evalPlan with the where clause
+        plan = new EvalPlan(where, plan);
+    }
+
+    //execute evalutation plan to get list of handles
+    EvalPlan *opt = plan->optimize();
+    EvalPipeline pipeline = opt->pipeline();
+    Handles *handles = pipeline.second;
+
+    //Removing from indices
+    //getting index names for the given table name
+    auto index_names = SQLExec::indices->get_index_names(table_name);
+    unsigned int handle_size = handles->size();
+    unsigned int index_size = index_names.size();
+    for( auto const &handle: *handles){
+        for (unsigned int i = 0; i < index_names.size(); i++){
+            DbIndex &index = SQLExec::indices->get_index(table_name, index_names[i]);
+            //delete the handle
+            index.del(handle);
+        }
+    }
+    //removing from table
+    for (auto const& handle: *handles){
+        table.del(handle);
+    }
+    delete where; //clear up memory
+    return new QueryResult("successfully deleted " + to_string(handle_size)
+                           + " rows from " + table_name + " and " + to_string(index_size) + " indices");
 }
 
 QueryResult *SQLExec::select(const SelectStatement *statement) {
