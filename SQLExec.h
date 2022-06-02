@@ -95,10 +95,8 @@ protected:
     static QueryResult *del(const hsql::DeleteStatement *statement);
 
     static QueryResult *select(const hsql::SelectStatement *statement);
-	
-    static ValueDict* get_where_conjunction(const hsql::Expr* parse_where);
 
-    static ValueDict *get_where_conjunction(const hsql::Expr *expr, const ColumnNames *col_names);
+    static ValueDict *get_where_conjunction(const hsql::Expr *expr);
 
     /**
      * Pull out column name and attributes from AST's column definition clause

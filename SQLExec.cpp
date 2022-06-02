@@ -4,6 +4,7 @@
  * @see "Seattle University, CPSC5300, Spring 2022"
  */
 #include "SQLExec.h"
+#include "EvalPlan.h"
 
 using namespace std;
 using namespace hsql;
@@ -55,46 +56,6 @@ QueryResult::~QueryResult() {
         for (auto row: *rows)
             delete row;
         delete rows;
-    }
-}
-
-ValueDict* SQLExec::get_where_conjunction(const hsql::Expr *expr, const ColumnNames *col_names){
-    ValueDict* rows = new ValueDict;
-    if (expr->type == kExprOperator){
-        if(expr->opType == Expr::AND){
-            ValueDict* sub = get_where_conjunction(expr->expr, col_names); //recursively get left
-            if (sub != nullptr){
-                rows->insert(sub->begin(), sub->end());
-            }
-            sub = get_where_conjunction(expr->expr2, col_names);
-            rows->insert(sub->begin(), sub->end());
-        }
-        else if(expr->opType == Expr::SIMPLE_OP){
-            if(expr->opChar == '='){//handles equality in statement
-                Identifier col = expr->expr->name;
-                if(find(col_names->begin(), col_names->end(), col) == col_names->end()){//look for column
-                    throw DbRelationError("unknown column '" + col + "'");
-                }
-                if (expr->expr2->type == kExprLiteralString){
-                    rows->insert(pair<Identifier, Value>(col, Value(expr->expr2->name)));
-                }
-                else if(expr->expr2->type == kExprLiteralInt){
-                    rows->insert(pair<Identifier, Value>(col, Value(expr->expr2->ival)));
-                }
-                else{
-                    throw DbRelationError("Not a valid data type");
-                }
-            }
-            else {
-                throw DbRelationError("currently supports equality predicates only");
-            }
-        }
-        else {
-            throw DbRelationError("Supports AND conjunctions only");
-        }
-        return rows;
-    } else {
-        throw DbRelationError("Operator is INVALID!!    ");
     }
 }
 
@@ -203,7 +164,7 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
     ValueDict* where = new ValueDict;
     if (statement->expr != NULL){
         try{
-            where = get_where_conjunction(statement->expr, &col_names);
+            where = get_where_conjunction(statement->expr);
         }
         catch (exception &e){
             throw;
@@ -238,8 +199,85 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
                            + " rows from " + table_name + " and " + to_string(index_size) + " indices");
 }
 
+ValueDict* SQLExec::get_where_conjunction(const Expr* expr) {
+    ValueDict* where_list = new ValueDict;
+
+    if (expr->type != kExprOperator) {
+        throw DbRelationError("Operator is INVALID!!");
+    }
+
+    if (expr->opType == Expr::AND) {
+        ValueDict* first = get_where_conjunction(expr->expr); //recursively get left
+        if (first != nullptr) {
+            where_list->insert(first->begin(), first->end());
+        }
+        ValueDict* second = get_where_conjunction(expr->expr2);
+        where_list->insert(second->begin(), second->end());
+        delete first;
+        delete second;
+    }else if (expr->opType == Expr::SIMPLE_OP) {
+        if (expr->opChar != '=') {//handles equality in statement
+            throw DbRelationError("currently supports equality predicates only");
+        }
+        Identifier col = expr->expr->name;
+
+        if (expr->expr2->type == kExprLiteralString) {
+            where_list->insert(pair<Identifier, Value>(col, Value(expr->expr2->name)));
+        }
+        else if (expr->expr2->type == kExprLiteralInt) {
+            where_list->insert(pair<Identifier, Value>(col, Value(expr->expr2->ival)));
+        }
+        else {
+            throw DbRelationError("invalid only support INT and String");
+        }
+    }else {
+        throw DbRelationError("Supports AND conjunctions only");
+    }
+
+    return where_list;
+}
+
 QueryResult *SQLExec::select(const SelectStatement *statement) {
-    return new QueryResult("SELECT statement not yet implemented");  // FIXME
+
+    // get table name
+    Identifier table_name = statement->fromTable->name;
+
+    // get table
+    DbRelation& table = SQLExec::tables->get_table(table_name);
+
+    //column names
+    ColumnNames* column_names = new ColumnNames;
+
+    for (auto const& expr : *statement->selectList) {
+        if (expr->type == kExprStar) {
+            for (auto const column : table.get_column_names()) {
+                column_names->push_back(column);
+            }
+        }
+        else if (expr->type == kExprColumnRef) {
+            column_names->push_back(expr->name);
+        }
+        else {
+            return new QueryResult("Invalid select expression");
+        }
+    }
+    // start base of plan at a TableScan
+    EvalPlan* plan = new EvalPlan(table);
+
+    //enclose that in a select if we have a where clause
+    if (statement->whereClause != nullptr) {
+        plan = new EvalPlan(get_where_conjunction(statement->whereClause), plan);
+    }
+
+    //project
+    plan = new EvalPlan(column_names, plan);
+
+    //optimize the plan and evaluate the optimized plan
+    EvalPlan* optimized = plan->optimize();
+    ValueDicts* rows = optimized->evaluate();
+
+    ColumnAttributes* column_attributes = table.get_column_attributes(*column_names);
+    return new QueryResult(column_names, column_attributes, rows, "successufly returned " + to_string(rows->size()) + " rows");
 }
 
 void
