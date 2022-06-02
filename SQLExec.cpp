@@ -4,7 +4,6 @@
  * @see "Seattle University, CPSC5300, Spring 2022"
  */
 #include "SQLExec.h"
-#include "EvalPlan.h"
 
 using namespace std;
 using namespace hsql;
@@ -59,45 +58,6 @@ QueryResult::~QueryResult() {
     }
 }
 
-ValueDict* SQLExec::get_where_conjunction(const hsql::Expr *expr, const ColumnNames *col_names){
-    ValueDict* rows = new ValueDict;
-    if (expr->type == kExprOperator){
-        if(expr->opType == Expr::AND){
-            ValueDict* sub = get_where_conjunction(expr->expr, col_names); //recursively get left
-            if (sub != nullptr){
-                rows->insert(sub->begin(), sub->end());
-            }
-            sub = get_where_conjunction(expr->expr2, col_names);
-            rows->insert(sub->begin(), sub->end());
-        }
-        else if(expr->opType == Expr::SIMPLE_OP){
-            if(expr->opChar == '='){//handles equality in statement
-                Identifier col = expr->expr->name;
-                if(find(col_names->begin(), col_names->end(), col) == col_names->end()){//look for column
-                    throw DbRelationError("unknown column '" + col + "'");
-                }
-                if (expr->expr2->type == kExprLiteralString){
-                    rows->insert(pair<Identifier, Value>(col, Value(expr->expr2->name)));
-                }
-                else if(expr->expr2->type == kExprLiteralInt){
-                    rows->insert(pair<Identifier, Value>(col, Value(expr->expr2->ival)));
-                }
-                else{
-                    throw DbRelationError("Not a valid data type");
-                }
-            }
-            else {
-                throw DbRelationError("currently supports equality predicates only");
-            }
-        }
-        else {
-            throw DbRelationError("Supports AND conjunctions only");
-        }
-        return rows;
-    } else {
-        throw DbRelationError("Operator is INVALID!!    ");
-    }
-}
 
 QueryResult *SQLExec::execute(const SQLStatement *statement) {
     // initialize _tables table, if not yet present
@@ -129,158 +89,15 @@ QueryResult *SQLExec::execute(const SQLStatement *statement) {
 }
 
 QueryResult *SQLExec::insert(const InsertStatement *statement) {
-    // getting the table name
-    Identifier table_name = statement->tableName;
-    // getting the table with the table name
-    DbRelation& table = SQLExec::tables->get_table(table_name);
-    ValueDict row;
-    Handle insertHandle;
-    ColumnNames column_names;
-    ColumnAttributes column_attributes;
-    unsigned int index = 0;
-
-    //get column info
-    if(statement->columns != nullptr){
-        for (auto const col : *statement->columns){
-            column_names.push_back(col);
-        }
-    }
-    else {
-        for (auto const col: table.get_column_names()){
-            column_names.push_back(col);
-        }
-    }
-
-    for (auto const& col : *statement->values) {
-        if (col->type == kExprLiteralString){
-                    row[column_names[index]] = Value(col->name);
-                    index++;
-            }
-        else if (col->type == kExprLiteralInt){
-                    row[column_names[index]] = Value(col->ival);
-                    index++;
-            }
-        else {
-            //Don't add to table
-            throw SQLExecError("Insert can only handle INT or Text");
-        }
-    }
-
-    // adding inset to a handle
-    insertHandle = table.insert(&row);
-
-    //getting index names on a table
-    IndexNames index_names;
-    index_names = SQLExec::indices->get_index_names(table_name);
-    for(Identifier index_name : index_names){
-        DbIndex& index = SQLExec::indices->get_index(table_name, index_name);
-        index.insert(insertHandle);
-    }
-    int index_size = index_names.size();
-    return new QueryResult("Successfully inserted 1 row into "
-                           + table_name + " and " + to_string(index_size) + " indices");
+    return new QueryResult("INSERT statement not yet implemented");  // FIXME
 }
 
-/**
- * del method to delete rows from the a table
- * USAGE :: delete from foo where id=1
- * @param statement
- * @return Query result
- */
 QueryResult *SQLExec::del(const DeleteStatement *statement) {
-    //getting the tablename from the statement
-    Identifier table_name = statement->tableName;
-    //fetching the table with the given table name in the query
-    DbRelation& table = SQLExec::tables->get_table(table_name);
-    ColumnNames col_names;
-
-    for (auto const col: table.get_column_names()){
-        col_names.push_back(col);
-    }
-
-    //making the evaluation plan
-    EvalPlan *plan = new EvalPlan(table);
-
-    ValueDict* where = new ValueDict;
-    if (statement->expr != NULL){
-        try{
-            where = get_where_conjunction(statement->expr, &col_names);
-        }
-        catch (exception &e){
-            throw;
-        }
-        // defining evalPlan with the where clause
-        plan = new EvalPlan(where, plan);
-    }
-
-    //execute evalutation plan to get list of handles
-    EvalPlan *opt = plan->optimize();
-    EvalPipeline pipeline = opt->pipeline();
-    Handles *handles = pipeline.second;
-
-    //Removing from indices
-    //getting index names for the given table name
-    auto index_names = SQLExec::indices->get_index_names(table_name);
-    unsigned int handle_size = handles->size();
-    unsigned int index_size = index_names.size();
-    for( auto const &handle: *handles){
-        for (unsigned int i = 0; i < index_names.size(); i++){
-            DbIndex &index = SQLExec::indices->get_index(table_name, index_names[i]);
-            //delete the handle
-            index.del(handle);
-        }
-    }
-    //removing from table
-    for (auto const& handle: *handles){
-        table.del(handle);
-    }
-    delete where; //clear up memory
-    return new QueryResult("successfully deleted " + to_string(handle_size)
-                           + " rows from " + table_name + " and " + to_string(index_size) + " indices");
+    return new QueryResult("DELETE statement not yet implemented");  // FIXME
 }
 
 QueryResult *SQLExec::select(const SelectStatement *statement) {
-    Identifier table_name = statement->fromTable->name;
-    DbRelation& table = SQLExec::tables->get_table(table_name);
-
-    ColumnNames* column_names = new ColumnNames;
-    for (auto const  &expr : *statement->selectList) {
-        if (expr->type == kExprStar) {
-            for (auto const column : table.get_column_names()) {
-                column_names->push_back(column);
-            }
-        }
-        else if(expr->type == kExprColumnRef){
-            column_names->push_back(expr->name);
-        }
-        else {
-            return new QueryResult("Invalid select expression");
-        }
-    }
-    // start base of plan at a TableScan
-    EvalPlan *plan = new EvalPlan(table);
-
-    //enclose that in a select if we have a where clause
-    if (statement->whereClause != nullptr) {
-        plan = new EvalPlan(get_where_conjunction(statement->whereClause), plan);
-    }
-
-    //project
-    plan = new EvalPlan(column_names, plan);
-
-    //optimize the plan and evaluate the optimized plan
-    EvalPlan* optimized = plan->optimize();
-    ValueDicts* rows = optimized->evaluate();
-
-    ColumnAttributes* column_attributes = table.get_column_attributes(*column_names);
-    return new QueryResult(column_names, column_attributes, rows, "successufly returned " + to_string(rows->size()) + " rows");
-}
-
-ValueDict *SQLExec::get_where_conjunction(const Expr *parse_where) {
-    ValueDict* where_list = new ValueDict;
-
-
-    return where_list;
+    return new QueryResult("SELECT statement not yet implemented");  // FIXME
 }
 
 void
@@ -522,7 +339,8 @@ QueryResult *SQLExec::show_index(const ShowStatement *statement) {
         rows->push_back(row);
     }
     delete handles;
-    return new QueryResult(column_names, column_attributes, rows, "successfully returned " + to_string(n) + " rows");
+    return new QueryResult(column_names, column_attributes, rows,
+                           "successfully returned " + to_string(n) + " rows");
 }
 
 QueryResult *SQLExec::show_tables() {

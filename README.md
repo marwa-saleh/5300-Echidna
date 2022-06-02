@@ -1,77 +1,32 @@
-# 5300-Echidna
+# 5300-Instructor
+Instructor's DB Relation Manager project for CPSC5300/4300 at Seattle U, Spring 2022
 
-_Sprint Otoño_
-
-Sprint 2 Team:
-Thomas Bakken& Fangsheng Xu
-
-Sprint 1 Team:
-Meryll& Darin
-
-## Comments from Sprint Verano
-
-Milestone3 and 4 are fully functional to the test cases provided. Best assumptions were made to handle error cases with no functionality provided. There may be some rem The team was mindful of memory leaks, being careful to delete pointers after use. The code base is from github repository klundeen/5300-Instructor. Errors remaining in the sql parser provided for Milestone4 were fixed. SQLExec was written by the sprint Verano Team. 
-
-Video Link: https://www.youtube.com/watch?v=ZrI10mtJ7NY (sorry the video is blurry, not sure how to up the resolution in my screen recorder... hope the audio walkthrough still helps. 
-
-## Milestone 1:
-
-Program written in C++ that runs from the command line and prompts the user for SQL statements and then executes them one at a time, just like the mysql program.
-
-To build the program:
-$ make
-
-To run the program:
+Usage (argument is database directory):
+<pre>
 $ ./sql5300 ~/cpsc5300/data
+</pre>
 
-## Milestone 2:
-
-The storage engine is made up of three layers: DbBlock, DbFile, and DbRelation.
-Created a program for the implementations for the Heap Storage Engine's version of each: SlottedPage, HeapFile, and HeapTable.
-
-
-## Milestone 3:
-
-Rudimentary implementation of a Schema Storage that support the following commands:
-* CREATE TABLE
-#### Syntax:
+## Tags
+- <code>Milestone1</code> is playing around with the AST returned by the HyLine parser and general setup of the command loop.
+- <code>Milestone2h</code> has the intructor-provided files for Milestone2. (Note that heap_storage.cpp is just a stub.)
+- <code>Milestone2</code> is the instructor's attempt to complete the Milestone 2 assignment.
+- <code>Milestone3_prep</code> has the instructor-provided files for Milestone 3. The students' work is in <code>SQLExec.cpp</code> labeled with <code>FIXME</code>.
+- <code>Milestone4_prep</code> has the instructor-provided files for Milestone 4. The students' work is in <code>SQLExec.cpp</code> labeled with <code>FIXME</code>.
+- <code>Milestone4</code> has the instructor's attempt to complete both the Milestone 3 and Milestone 4 assignments.
+- <code>Milestone5_prep</code> has the instructor-provided files for Milestone5.
+## Unit Tests
+There are some tests for SlottedPage and HeapTable. They can be invoked from the <code>SQL</code> prompt:
+```sql
+SQL> test
 ```
-<table_definition> ::= CREATE TABLE <table_name> (<column_definitions> )
-<column_definitions> ::= <column_definition> | <column_definition>, <column_definitions>
-<column_definition> ::= <column_name> <datatype>
-```
-* DROP TABLE
-#### Syntax:
-```
-<drop_table_statement> ::= DROP TABLE <table_name>
-```
-* SHOW TABLES
-#### Syntax:
-```
-<show_tables_statement> ::= SHOW TABLES
-```
-* SHOW COLUMNS
-#### Syntax:
-```
-<show_columns_statement> ::= SHOW COLUMNS FROM <table_name>
+Be aware that failed tests may leave garbage Berkeley DB files lingering in your data directory. If you don't care about any data in there, you are advised to just delete them all after a failed test.
+```sh
+$ rm -f data/*
 ```
 
-
-## Milestone 4:
-
-Rudimentary implementation of SQL index commands. Supports the following commands:
-* CREATE INDEX
-#### Syntax:
+## Valgrind (Linux)
+To run valgrind (files must be compiled with <code>-ggdb</code>):
+```sh
+$ valgrind --leak-check=full --suppressions=valgrind.supp ./sql5300 data
 ```
-CREATE INDEX index_name ON table_name [USING {BTREE | HASH}] (col1, col2, ...)
-```
-* SHOW INDEX
-#### Syntax:
-```
-SHOW INDEX FROM table_name
-```
-* DROP INDEX
-#### Syntax:
-```
-DROP INDEX index_name ON table_name
-```
+Note that we've added suppression for the known issues with the Berkeley DB library <em>vis-à-vis</em> valgrind.

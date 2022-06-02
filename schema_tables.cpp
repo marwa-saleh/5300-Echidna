@@ -5,7 +5,6 @@
  */
 #include "schema_tables.h"
 #include "ParseTreeToString.h"
-#include "btree.h"
 
 
 void initialize_schema_tables() {
@@ -405,7 +404,7 @@ DbIndex &Indices::get_index(Identifier table_name, Identifier index_name) {
     if (is_hash) {
         index = new DummyIndex(table, index_name, column_names, is_unique);  // FIXME - change to HashIndex
     } else {
-        index = new BTreeIndex(table, index_name, column_names, is_unique);
+        index = new DummyIndex(table, index_name, column_names, is_unique);  // FIXME - change to BTreeIndex
     }
     Indices::index_cache[cache_key] = index;
     return *index;
