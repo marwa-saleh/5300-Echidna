@@ -15,6 +15,33 @@ $ ./sql5300 ~/cpsc5300/data
 - <code>Milestone4</code> has the instructor's attempt to complete both the Milestone 3 and Milestone 4 assignments.
 - <code>Milestone5_prep</code> has the instructor-provided files for Milestone5.
 - <code>Milestone6_prep</code> has the instructor-provided files for Milestone6.
+
+## Sprint Invierno
+
+Team: Marwa Saleh, Ramya Anupoju
+
+### **Milestone 5**
+
+We did implementation of the following:
+
+* INSERT TABLE
+`$ SQL> INSERT INTO table (col_1, col_2, col_n) VALUES (1, 2, "three");`
+* DELETE TABLE
+`$ SQL> DELETE FROM table WHERE col_1 = 1;`
+* SELECT ALL
+`$ SQL> SELECT * FROM table WHERE col_1 = 1 AND col_n = "three";`
+* SELECT SPECIFIC COL
+`$ SQL> SELECT col_1, col_2 FROM table;`
+
+### **Milestone 6**
+
+Implementation of B+ Tree Index -- just insert and lookup.
+Range and del aren't implemented.
+To test:
+`$ SQL> test`
+
+
+
 ## Unit Tests
 There are some tests for SlottedPage and HeapTable. They can be invoked from the <code>SQL</code> prompt:
 ```sql
