@@ -131,7 +131,9 @@ Insertion BTreeIndex::_insert(BTreeNode *node, uint height, const KeyValue *key,
         return leaf->insert(key, handle);
     } else {
         auto *interior = dynamic_cast<BTreeInterior *>(node);
-        Insertion insertion = _insert(interior->find(key, height), height - 1, key, handle);
+        auto *child = interior->find(key, height);
+        Insertion insertion = _insert(child, height - 1, key, handle);
+        delete child;
         if (!BTreeNode::insertion_is_none(insertion))
             insertion = interior->insert(&insertion.second, insertion.first);
         return insertion;
