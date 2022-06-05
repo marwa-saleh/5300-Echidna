@@ -25,20 +25,30 @@ Team: Marwa Saleh, Ramya Anupoju
 We did implementation of the following:
 
 * INSERT TABLE
-`$ SQL> INSERT INTO table (col_1, col_2, col_n) VALUES (1, 2, "three");`
+```sql 
+SQL> INSERT INTO table (col_1, col_2, col_n) VALUES (1, 2, "three");
+```
 * DELETE TABLE
-`$ SQL> DELETE FROM table WHERE col_1 = 1;`
+```sql 
+SQL> DELETE FROM table WHERE col_1 = 1;
+```
 * SELECT ALL
-`$ SQL> SELECT * FROM table WHERE col_1 = 1 AND col_n = "three";`
-* SELECT SPECIFIC COL
-`$ SQL> SELECT col_1, col_2 FROM table;`
+```sql
+SQL> SELECT * FROM table WHERE col_1 = 1 AND col_n = "three";
+```
+* SELECT SPECIFIC COLUMN
+```sql
+SQL> SELECT col_1, col_2 FROM table;
+```
 
 ### **Milestone 6**
 
 Implementation of B+ Tree Index -- just insert and lookup.
 Range and del aren't implemented.
-To test:
-`$ SQL> test`
+* To test:
+```sql
+SQL> test
+```
 
 
 
