@@ -70,9 +70,32 @@ void BTreeIndex::close() {
 // Find all the rows whose columns are equal to key. Assumes key is a dictionary whose keys are the column
 // names in the index. Returns a list of row handles.
 Handles *BTreeIndex::lookup(ValueDict *key_dict) const {
-    // FIXME
-    return nullptr;
+    return this->_lookup(this->root, this->stat->get_height(), this->tkey(key_dict));
 }
+
+template<typename Base, typename T>
+inline bool instanceof(const T* ptr) {
+    return dynamic_cast<const Base*>(ptr) != nullptr;
+}
+
+Handles* BTreeIndex::_lookup(BTreeNode* node, uint height, const KeyValue* key) const {
+    // recursively traverse the tree until you reach a leaf node
+    if (!instanceof<BTreeLeaf>(node)) {
+        // continue searching a level down
+        return this->_lookup(dynamic_cast<const BTreeInterior*>(node)->find(key, height), height - 1, key);
+    }
+
+    // if you reach leaf, that's the last level to return
+    Handles* results = new Handles();
+    try {
+        results->push_back(dynamic_cast<const BTreeLeaf*>(node)->find_eq(key));
+    }
+    catch (...) {
+        std::cout << "did not find key " << std::endl;
+    }
+    return results;
+}
+
 
 Handles *BTreeIndex::range(ValueDict *min_key, ValueDict *max_key) const {
     throw DbRelationError("Don't know how to do a range query on Btree index yet");
@@ -156,18 +179,19 @@ bool test_btree() {
     row2["b"] = Value(101);
     table.insert(&row1);
     table.insert(&row2);
-    for (int i = 0; i < 100 * 1000; i++) {
+    //* 100* 1000
+    for (int i = 0; i < 100 * 5; i++) {
         ValueDict row;
         row["a"] = Value(i + 100);
         row["b"] = Value(-i);
         table.insert(&row);
     }
+    std::cout << "finished loop " << std::endl;
+
     column_names.clear();
     column_names.push_back("a");
     BTreeIndex index(table, "fooindex", column_names, true);
     index.create();
-    return true;  // FIXME
-
 
     ValueDict lookup;
     lookup["a"] = 12;
@@ -179,6 +203,7 @@ bool test_btree() {
     }
     delete handles;
     delete result;
+
     lookup["a"] = 88;
     handles = index.lookup(&lookup);
     result = table.project(handles->back());
@@ -188,6 +213,7 @@ bool test_btree() {
     }
     delete handles;
     delete result;
+
     lookup["a"] = 6;
     handles = index.lookup(&lookup);
     if (handles->size() != 0) {
@@ -197,7 +223,8 @@ bool test_btree() {
     delete handles;
 
     for (uint j = 0; j < 10; j++)
-        for (int i = 0; i < 1000; i++) {
+        // i < 1000
+        for (int i = 0; i < 500; i++) {
             lookup["a"] = i + 100;
             handles = index.lookup(&lookup);
             result = table.project(handles->back());
@@ -210,6 +237,7 @@ bool test_btree() {
             delete handles;
             delete result;
         }
+    /*
 
     // test delete
     ValueDict row;
@@ -275,8 +303,10 @@ bool test_btree() {
         std::cout << "delete everything failed: " << count_i << std::endl;
         return false;
     }
+    */
     index.drop();
     table.drop();
     return true;
+    
 }
 
