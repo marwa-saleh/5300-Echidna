@@ -1,6 +1,6 @@
 /**
  * @file btree.cpp - implementation of BTreeIndex, etc.
- * @author Kevin Lundeen
+ * @author Kevin Lundeen, Marwa, Ramya
  * @see "Seattle University, CPSC5300, Spring 2022"
  */
 #include "btree.h"
