@@ -137,6 +137,9 @@ QueryResult *SQLExec::insert(const InsertStatement *statement) {
         index.insert(insertHandle);
     }
     int index_size = index_names.size();
+	if (index_size == 0){
+		return new QueryResult("Successfully inserted 1 row into " + table_name);
+	}
     return new QueryResult("Successfully inserted 1 row into "
                            + table_name + " and " + to_string(index_size) + " indices");
 }
