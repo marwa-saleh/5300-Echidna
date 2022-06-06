@@ -73,14 +73,9 @@ Handles *BTreeIndex::lookup(ValueDict *key_dict) const {
     return this->_lookup(this->root, this->stat->get_height(), this->tkey(key_dict));
 }
 
-template<typename Base, typename T>
-inline bool instanceof(const T* ptr) {
-    return dynamic_cast<const Base*>(ptr) != nullptr;
-}
-
 Handles* BTreeIndex::_lookup(BTreeNode* node, uint height, const KeyValue* key) const {
     // recursively traverse the tree until you reach a leaf node
-    if (!instanceof<BTreeLeaf>(node)) {
+    if (!dynamic_cast<BTreeLeaf*>(node)) {
         // continue searching a level down
         return this->_lookup(dynamic_cast<const BTreeInterior*>(node)->find(key, height), height - 1, key);
     }
@@ -90,8 +85,7 @@ Handles* BTreeIndex::_lookup(BTreeNode* node, uint height, const KeyValue* key) 
     try {
         results->push_back(dynamic_cast<const BTreeLeaf*>(node)->find_eq(key));
     }
-    catch (...) {
-    }
+    catch (...) {}
     return results;
 }
 

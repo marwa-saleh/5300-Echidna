@@ -198,8 +198,12 @@ QueryResult *SQLExec::del(const DeleteStatement *statement) {
         table.del(handle);
     }
     delete where; //clear up memory
+    if (index_size == 0) {
+        return new QueryResult("successfully deleted " + to_string(handle_size)
+            + " rows from " + table_name);
+    }
     return new QueryResult("successfully deleted " + to_string(handle_size)
-                           + " rows from " + table_name + " and " + to_string(index_size) + " indices");
+        + " rows from " + table_name + " and " + to_string(index_size) + " indices");
 }
 
 ValueDict* SQLExec::get_where_conjunction(const Expr* expr) {
@@ -397,6 +401,9 @@ QueryResult *SQLExec::create_index(const CreateStatement *statement) {
     } catch (...) {
         // attempt to remove from _indices
         try {  // if any exception happens in the reversal below, we still want to re-throw the original ex
+            DbIndex& index = SQLExec::indices->get_index(table_name, index_name);
+            index.drop();
+
             for (auto const &handle: i_handles)
                 SQLExec::indices->del(handle);
         } catch (...) {}
