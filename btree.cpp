@@ -91,7 +91,6 @@ Handles* BTreeIndex::_lookup(BTreeNode* node, uint height, const KeyValue* key) 
         results->push_back(dynamic_cast<const BTreeLeaf*>(node)->find_eq(key));
     }
     catch (...) {
-        std::cout << "did not find key " << std::endl;
     }
     return results;
 }
@@ -182,7 +181,7 @@ bool test_btree() {
     table.insert(&row1);
     table.insert(&row2);
     //* 100* 1000
-    for (int i = 0; i < 100 * 5; i++) {
+    for (int i = 0; i < 10 * 10; i++) {
         ValueDict row;
         row["a"] = Value(i + 100);
         row["b"] = Value(-i);
@@ -226,7 +225,7 @@ bool test_btree() {
 
     for (uint j = 0; j < 10; j++)
         // i < 1000
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 100; i++) {
             lookup["a"] = i + 100;
             handles = index.lookup(&lookup);
             result = table.project(handles->back());
