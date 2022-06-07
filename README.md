@@ -50,7 +50,8 @@ Range and del aren't implemented.
 SQL> test
 ```
 
-
+## **Hand-off video
+https://www.loom.com/share/669770858bd941c1993ef7cf2f21a71a 
 
 ## Unit Tests
 There are some tests for SlottedPage and HeapTable. They can be invoked from the <code>SQL</code> prompt:

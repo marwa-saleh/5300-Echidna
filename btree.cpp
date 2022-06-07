@@ -174,7 +174,6 @@ bool test_btree() {
     row2["b"] = Value(101);
     table.insert(&row1);
     table.insert(&row2);
-    //* 100* 1000
     for (int i = 0; i < 10 * 10; i++) {
         ValueDict row;
         row["a"] = Value(i + 100);
@@ -218,7 +217,6 @@ bool test_btree() {
     delete handles;
 
     for (uint j = 0; j < 10; j++)
-        // i < 1000
         for (int i = 0; i < 100; i++) {
             lookup["a"] = i + 100;
             handles = index.lookup(&lookup);
@@ -232,7 +230,11 @@ bool test_btree() {
             delete handles;
             delete result;
         }
-    /*
+   
+    // fix me when delete and range are implemented.
+    index.drop();
+    table.drop();
+    return true; 
 
     // test delete
     ValueDict row;
@@ -298,7 +300,7 @@ bool test_btree() {
         std::cout << "delete everything failed: " << count_i << std::endl;
         return false;
     }
-    */
+    
     index.drop();
     table.drop();
     return true;
